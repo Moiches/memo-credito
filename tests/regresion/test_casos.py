@@ -71,7 +71,13 @@ def test_sol0004_periodos_explicitos(analisis):
 
 def test_sol0001_tabla_identica_al_ejemplo(analisis):
     filas = {i.nombre: (i.valor_texto, i.fuente_memo) for i in analisis["SOL-0001"].indicadores}
-    assert filas["Flujo neto jul 2026"] == ("$114,872.99", "estado_cuenta_2026-07.pdf (abonos $1,555,566.24 − cargos $1,440,693.25)")
+    assert filas["Flujo neto jul 2026"] == (
+        "$114,872.99",
+        "estado_cuenta_2026-07.pdf (abonos $1,555,566.24 − cargos $1,440,693.25)",
+    )
     assert filas["Pago mensual estimado"] == ("$63,445.32", "$1,200,000 a 24 meses, tasa de referencia 24% anual")
     assert filas["Capacidad de pago"] == ("1.85", "$117,373.84 / $63,445.32")
-    assert filas["Apalancamiento"] == ("0.79", "Pasivo total $3,000,000.00 / capital contable $3,800,000.00 (estados_financieros_2025.pdf)")
+    assert filas["Apalancamiento"] == (
+        "0.79",
+        "Pasivo total $3,000,000.00 / capital contable $3,800,000.00 (estados_financieros_2025.pdf)",
+    )

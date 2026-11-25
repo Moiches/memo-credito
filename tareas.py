@@ -78,17 +78,48 @@ def main() -> None:
     elif o == "deploy-cicd":
         cdk(args, "deploy", "MemoCredito-Cicd", "--require-approval", "never")
     elif o == "smoke":
-        correr("uv", "run", "memo", "enviar", args.folio or "SOL-0001", "--entorno", args.entorno, "--esperar", env=perfil_env)
+        correr(
+            "uv",
+            "run",
+            "memo",
+            "enviar",
+            args.folio or "SOL-0001",
+            "--entorno",
+            args.entorno,
+            "--esperar",
+            env=perfil_env,
+        )
     elif o == "smoke-bedrock":
         correr("uv", "run", "python", "scripts/smoke_bedrock.py", env=perfil_env)
     elif o == "probar-guardrail":
         correr("uv", "run", "python", "scripts/probar_guardrail.py", "--entorno", args.entorno, env=perfil_env)
     elif o == "integracion":
-        correr("uv", "run", "pytest", "-m", "integracion", "tests/integracion", "-o", "addopts=-q",
-               env={**perfil_env, "ENTORNO": args.entorno})
+        correr(
+            "uv",
+            "run",
+            "pytest",
+            "-m",
+            "integracion",
+            "tests/integracion",
+            "-o",
+            "addopts=-q",
+            env={**perfil_env, "ENTORNO": args.entorno},
+        )
     elif o == "carga":
-        correr("uv", "run", "python", "scripts/carga.py", "--entorno", args.entorno, "--n", str(args.n), "--modo", args.modo,
-               *extra, env=perfil_env)
+        correr(
+            "uv",
+            "run",
+            "python",
+            "scripts/carga.py",
+            "--entorno",
+            args.entorno,
+            "--n",
+            str(args.n),
+            "--modo",
+            args.modo,
+            *extra,
+            env=perfil_env,
+        )
     elif o == "revisar":
         correr("uv", "run", "memo", "revisar", *extra, env=perfil_env)
     elif o == "reprocesar":
@@ -98,7 +129,16 @@ def main() -> None:
     elif o == "destroy":
         if args.entorno == "prod":
             sys.exit("destroy no está permitido en prod desde tareas.py")
-        correr("uv", "run", "python", "scripts/purgar_auditoria_dev.py", "--entorno", args.entorno, "--confirmar", env=perfil_env)
+        correr(
+            "uv",
+            "run",
+            "python",
+            "scripts/purgar_auditoria_dev.py",
+            "--entorno",
+            args.entorno,
+            "--confirmar",
+            env=perfil_env,
+        )
         cdk(args, "destroy", f"MemoCredito-{args.entorno}/*", "--force")
     else:
         sys.exit(f"objetivo desconocido: {o}")

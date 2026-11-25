@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "resumen": {
+      "type": "string",
+      "description": "De dos a cuatro oraciones. Cifras solo como marcadores {{id}}."
+    },
+    "observaciones": {
+      "type": "array",
+      "description": "De dos a cinco viñetas.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "texto": {"type": "string"},
+          "alertas_referidas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "R01", "R02", "R03", "R04", "S01", "S02", "S03", "D01"]
+            }
+          }
+        },
+        "required": ["texto", "alertas_referidas"],
+        "additionalProperties": false
+      }
+    },
+    "puntos_comite": {
+      "type": "array",
+      "description": "De una a cuatro viñetas.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "texto": {"type": "string"},
+          "alertas_referidas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "R01", "R02", "R03", "R04", "S01", "S02", "S03", "D01"]
+            }
+          }
+        },
+        "required": ["texto", "alertas_referidas"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["resumen", "observaciones", "puntos_comite"],
+  "additionalProperties": false
+}

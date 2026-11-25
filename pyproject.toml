@@ -51,6 +51,9 @@ extend-exclude = ["cdk.out", "build", "datos", "docs/anexos"]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "S"]
 ignore = ["RUF001", "RUF002", "RUF003", "S101", "S311", "UP046"]
 
+[tool.ruff.lint.pycodestyle]
+max-line-length = 140
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "B017"]
 "scripts/**" = ["S"]
