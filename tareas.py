@@ -1,6 +1,6 @@
 """Comandos de una línea del proyecto (multiplataforma). El Makefile solo delega aquí.
 
-Uso:  uv run python tareas.py <objetivo> [--entorno dev] [--perfil moiches] [--n 5]
+Uso:  uv run python tareas.py <objetivo> [--entorno dev] [--perfil <perfil>] [--n 5]
 En Windows sin make, este es el punto de entrada.
 """
 

@@ -114,6 +114,9 @@ jobs:
 
   deploy-prod:
     needs: integracion-dev
+    # Prod queda apagado hasta habilitarlo a propósito (variable de repositorio PROD_HABILITADO=true).
+    # Además, el environment `prod` exige revisores cuando el plan de GitHub lo permite.
+    if: ${{ vars.PROD_HABILITADO == 'true' }}
     runs-on: ubuntu-24.04
     environment: prod # revisores obligatorios en la configuración del environment
     timeout-minutes: 45
