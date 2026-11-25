@@ -49,7 +49,7 @@ extend-exclude = ["cdk.out", "build", "datos", "docs/anexos"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "S"]
-ignore = ["RUF001", "RUF002", "RUF003", "S101", "S311"]
+ignore = ["RUF001", "RUF002", "RUF003", "S101", "S311", "UP046"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "B017"]
