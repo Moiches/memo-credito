@@ -102,3 +102,4 @@ Bitácora de cómo se construyó la solución, cómo se usaron las herramientas 
   - Lo cubre la prueba `tests/infra/test_cicd.py`.
 - **Primer `ci`** (manual): `calidad` e `infra` en verde en GitHub. Incluyen lint, tipos, pruebas, evals, candado, pip-audit, gitleaks, el paquete de Lambda y el synth de dev y prod con cdk-nag.
 - **PR de Dependabot:** no reciben token OIDC, así que el job `diff` se omite para ellos.
+- **Segundo `cd`:** build, despliegue de dev con OIDC (mismo ensamblado que se sintetizó una sola vez) e integración con el rol restringido: 9 de 9 en 44 s, incluidos los negativos de permisos (escribir revisiones como otra identidad, leer expedientes que no son de prueba). Prod se omitió por diseño.

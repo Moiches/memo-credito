@@ -23,8 +23,8 @@ Estado al 2026-11-25. "Desplegado" significa que funciona en la cuenta de dev (`
 | Políticas de personas (analista, comité, auditor, operación) | Desplegado (las políticas) | `tests/infra/test_iam.py`; los permission sets de Identity Center son un prerrequisito manual |
 | Inventario aprobado de permisos IAM (regla 6) y cdk-nag 3 limpio | Implementado | `tests/infra/permisos_esperados.json` |
 | VPC aislada con endpoints, data protection de logs y COMPLIANCE en prod | Implementado en la configuración de prod (synth y pruebas) | `tests/infra/test_recursos.py`; prod no se desplegó |
-| Workflows de GitHub Actions (ci, cd, evals-reales, carga), dependabot y CODEOWNERS | Escritos, no ejecutados | Falta crear el repositorio en GitHub y desplegar el stack `MemoCredito-Cicd` con `-c repo=<owner>/<repo>` |
-| Pruebas de integración contra dev | 7 pasan; 2 negativos de permisos requieren el rol restringido de OIDC | `tests/integracion/test_dev.py` |
+| Workflows de GitHub Actions (ci, cd, evals-reales, carga), dependabot y CODEOWNERS | **En uso** en el repositorio privado `Moiches/memo-credito`: `ci` en verde; `cd` despliega dev con OIDC e integra; prod está apagado (`PROD_HABILITADO`) | Corridas de GitHub Actions del 2026-11-25 |
+| Pruebas de integración contra dev | **9/9 en el pipeline** con el rol restringido `gh-pruebas-dev`, incluidos los negativos de permisos (en local, con el perfil administrador, esos 2 se omiten) | `tests/integracion/test_dev.py`, job `integracion-dev` |
 | Prueba de carga | 100 de 100 en ráfaga (p95 de 41.8 s) tras corregir un reintento | `docs/escalamiento.md` |
 | Evals reales 5 × 8 y candado del prompt | **40/40 con Sonnet 4.6 y el guardrail de dev**; candado aprobado | `evals/scorecards/20261125_1458_bedrock_5x.md`, `evals/aprobaciones.json` |
 

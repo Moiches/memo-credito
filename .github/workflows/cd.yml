@@ -5,6 +5,7 @@ name: cd
 on:
   push:
     branches: [main]
+    paths-ignore: ["docs/**", "**/*.md"] # la documentación no redespliega
   workflow_dispatch:
     inputs:
       ref:

@@ -15,7 +15,8 @@ Genera **borradores** de memos de crédito para PyMEs a partir de los estados de
 - **Evals reales** con Sonnet 4.6 y el guardrail desplegado: **40/40** (5 corridas × 8 casos), USD 0.024 por memo en promedio. El candado del prompt está aprobado.
 - **Punta a punta en AWS**: unos 18 s hasta el borrador con el LLM simulado y 37 s con Bedrock dentro de la Lambda. La revisión por la CLI termina en `LISTO_PARA_COMITE` con la identidad impuesta por IAM.
 - **Carga**: 100 expedientes en ráfaga con concurrencia de Lambda de 10, 100/100 en `PENDIENTE_REVISION`, p95 de 41.8 s.
-- **Guardrail desplegado**: 5/5 casos de prueba. Integración contra dev: 7 pasan y 2 negativos requieren el rol de OIDC.
+- **Guardrail desplegado**: 5/5 casos de prueba.
+- **CI/CD en GitHub Actions con OIDC**: `ci` en verde. `cd` despliega dev y corre la integración con el rol restringido, 9/9 incluidos los negativos de permisos. Prod está apagado hasta definir `PROD_HABILITADO=true`.
 - **Bugs encontrados al desplegar y medir**, todos corregidos con pruebas: el payload literal del Map, el throttling sin reintento en `EsperarRevision`, los falsos positivos del tema del guardrail y el código de alerta leído como cifra (`docs/registro_proceso.md`).
 
 ## Arquitectura
