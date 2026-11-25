@@ -1,0 +1,24 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	redactar(redactar)
+	verificar(verificar)
+	corregir(corregir)
+	plantilla(plantilla)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> redactar;
+	corregir -.-> plantilla;
+	corregir -.-> verificar;
+	redactar -.-> plantilla;
+	redactar -.-> verificar;
+	verificar -. &nbsp;fin&nbsp; .-> __end__;
+	verificar -.-> corregir;
+	verificar -.-> plantilla;
+	plantilla --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
