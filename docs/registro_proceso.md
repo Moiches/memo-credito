@@ -91,3 +91,14 @@ Bitácora de cómo se construyó la solución, cómo se usaron las herramientas 
   - Candado registrado en `evals/aprobaciones.json`; `memo evals --verificar-candado` está vigente.
 - **Versión final desplegada en dev**: integración 7 pasan y 2 omitidos (los negativos requieren el rol de OIDC).
 - **Gasto aproximado de Bedrock del día**: unos USD 4 (tres corridas de evals, diagnósticos y pruebas en Lambda).
+
+### Repositorio y CI/CD
+
+- **Repositorio:** `Moiches/memo-credito`, privado, creado con la confirmación explícita del propietario. Antes de publicar se revisaron los archivos versionados: sin credenciales, sin correos y sin el ID de la cuenta.
+- **Stack `memo-credito-cicd`:** proveedor OIDC de GitHub y roles `gh-pr-lectura`, `gh-deploy-dev`, `gh-deploy-prod` y `gh-pruebas-dev`. Sus ARN se guardan como variables del repositorio, no como secretos.
+- **Sin aprobación por revisores:** el plan de GitHub no admite revisores obligatorios en environments de repositorios privados (HTTP 422). `deploy-prod` queda apagado hasta definir `PROD_HABILITADO=true`, así que un push a `main` nunca despliega prod.
+- **Primer `cd`:** falló al asumir el rol. CloudTrail mostró que GitHub emite el `sub` con IDs inmutables (`repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:dev`), no el formato heredado.
+  - La confianza ahora exige ese sujeto exacto, que además impide que un repositorio recreado con el mismo nombre herede los permisos.
+  - Lo cubre la prueba `tests/infra/test_cicd.py`.
+- **Primer `ci`** (manual): `calidad` e `infra` en verde en GitHub. Incluyen lint, tipos, pruebas, evals, candado, pip-audit, gitleaks, el paquete de Lambda y el synth de dev y prod con cdk-nag.
+- **PR de Dependabot:** no reciben token OIDC, así que el job `diff` se omite para ellos.

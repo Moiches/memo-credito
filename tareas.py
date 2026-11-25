@@ -92,7 +92,8 @@ def main() -> None:
         correr("uv", "run", "python", "scripts/build_lambda.py")
         cdk(args, "deploy", f"MemoCredito-{args.entorno}/*", "--require-approval", "never")
     elif o == "deploy-cicd":
-        # Requiere el repositorio de GitHub: uv run python tareas.py deploy-cicd -c repo=<owner>/<repo>
+        # Requiere el repositorio de GitHub y su sujeto OIDC con IDs inmutables:
+        # uv run python tareas.py deploy-cicd -c repo=<owner>/<repo> -c repo_sub=<owner>@<id>/<repo>@<id>
         cdk(args, "deploy", "MemoCredito-Cicd", "--require-approval", "never", *extra)
     elif o == "smoke":
         correr(

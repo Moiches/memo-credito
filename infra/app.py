@@ -1,4 +1,8 @@
-"""Punto de entrada de CDK: `npx cdk <comando> -c entorno=dev|prod [-c repo=<owner>/<repo>]`."""
+"""Punto de entrada de CDK: `npx cdk <comando> -c entorno=dev|prod [-c repo=<owner>/<repo> -c repo_sub=<sub>]`.
+
+`repo_sub` es la parte del claim OIDC que identifica al repositorio con IDs inmutables, por ejemplo
+`<owner>@<owner_id>/<repo>@<repo_id>` (formato que emite GitHub; los IDs salen de `gh api repos/<owner>/<repo>`).
+"""
 
 from __future__ import annotations
 
@@ -29,6 +33,7 @@ def main() -> None:
             app,
             "MemoCredito-Cicd",
             repo=str(repo),
+            sujeto_repo=app.node.try_get_context("repo_sub"),
             dev=cargar_entorno("dev"),
             env=env,
             stack_name="memo-credito-cicd",

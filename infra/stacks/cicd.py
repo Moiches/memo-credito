@@ -24,10 +24,18 @@ FOLIOS_PRUEBA = ("IT-*", "LT-*")
 
 
 class CicdStack(Stack):
-    def __init__(self, scope: Construct, id_: str, repo: str, dev: Entorno, **kwargs: Any) -> None:
+    def __init__(
+        self, scope: Construct, id_: str, repo: str, dev: Entorno, sujeto_repo: str | None = None, **kwargs: Any
+    ) -> None:
+        """`sujeto_repo` es la parte del claim `sub` que identifica al repositorio. GitHub emite el formato con IDs
+        inmutables (`<owner>@<owner_id>/<repo>@<repo_id>`), que además impide que un repositorio recreado con el
+        mismo nombre herede la confianza. Sin él se usa el formato heredado `<owner>/<repo>`."""
         super().__init__(scope, id_, **kwargs)
         if repo.count("/") != 1:
             raise ValueError("repo debe tener la forma <owner>/<repo>")
+        sujeto_repo = sujeto_repo or repo
+        if sujeto_repo.count("/") != 1:
+            raise ValueError("sujeto_repo debe tener la forma <owner>@<id>/<repo>@<id>")
         self.proveedor = iam.OidcProviderNative(
             self, "GitHubOidc", url=f"https://{EMISOR}", client_ids=["sts.amazonaws.com"]
         )
@@ -46,7 +54,7 @@ class CicdStack(Stack):
                     conditions={
                         "StringEquals": {
                             f"{EMISOR}:aud": "sts.amazonaws.com",
-                            f"{EMISOR}:sub": f"repo:{repo}:{sujeto}",
+                            f"{EMISOR}:sub": f"repo:{sujeto_repo}:{sujeto}",
                         }
                     },
                 ),

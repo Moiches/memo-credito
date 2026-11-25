@@ -82,7 +82,8 @@ jobs:
 
   diff:
     # Solo PRs del mismo repositorio: los forks no reciben credenciales.
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.ROL_PR_LECTURA != ''
+    # Dependabot no recibe token OIDC ni variables: su PR solo pasa por calidad e infra.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' && vars.ROL_PR_LECTURA != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
