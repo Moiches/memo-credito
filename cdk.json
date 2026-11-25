@@ -1,5 +1,6 @@
 {
   "app": "uv run python -m infra.app",
+  "toolkitStackName": "CDKToolkit-memocred",
   "watch": {
     "include": [
       "infra/**",
@@ -13,6 +14,7 @@
     ]
   },
   "context": {
+    "@aws-cdk/core:bootstrapQualifier": "memocred",
     "@aws-cdk-containers/ecs-service-extensions:enableDefaultLogDriver": true,
     "@aws-cdk/aws-apigateway:authorizerChangeDeploymentLogicalId": true,
     "@aws-cdk/aws-apigateway:disableCloudWatchRole": true,

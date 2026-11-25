@@ -83,7 +83,11 @@ def handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     nombre_ejecucion = f"{folio}-{input_hash[:16]}" + (f"-r{reproceso}" if reproceso else "")
     correlacionar(folio, nombre_ejecucion)
     modo = env("MODO_LLM", cfg.llm.modo)
-    if env("PERMITIR_OVERRIDE_MODO", "false") == "true" and manifiesto.get("modo_llm") in ("simulado", "bedrock"):
+    if env("PERMITIR_OVERRIDE_MODO", "false") == "true" and manifiesto.get("modo_llm") in (
+        "simulado",
+        "bedrock",
+        "plantilla",
+    ):
         modo = manifiesto["modo_llm"]
 
     previo = leer_estado(folio)

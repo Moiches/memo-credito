@@ -49,7 +49,14 @@ def redactar_memo(
     canarios: tuple[str, ...] = (),
     forzar_plantilla: str | None = None,
     subsegmento: Subsegmento = _sin_subsegmento,
+    propagar_no_disponible: bool = False,
 ) -> ResultadoRedaccion:
+    """Redacta con el grafo; ante errores del modelo usa la plantilla determinista.
+
+    Con `propagar_no_disponible=True` (Lambda), un LLMNoDisponible (throttling, timeouts) se propaga para que
+    Step Functions reintente con backoff largo: la falta de capacidad retrasa el memo en vez de degradarlo.
+    """
+
     def memo_de(salida: SalidaLLM, origen: str, motivo: str | None = None) -> str:
         return ensamblar(exp, analisis, hechos, salida, meta, origen, motivo)
 
@@ -65,12 +72,17 @@ def redactar_memo(
             grafo = construir_grafo(cliente, verificador, plantilla, costeador, cfg.llm.max_correcciones, subsegmento)
             estado = ejecutar(grafo, hechos)
         except (LLMNoDisponible, LLMErrorConfiguracion) as exc:
+            if propagar_no_disponible and isinstance(exc, LLMNoDisponible):
+                raise
+            detalle = (
+                f" ({exc.detalle})" if exc.detalle and exc.detalle != exc.codigo else ""
+            )  # código de AWS, sin datos
             estado = EstadoGrafo(
                 hechos=hechos,
                 borrador=plantilla(hechos),
                 origen="plantilla",
                 requiere_revision=True,
-                motivo_plantilla=f"modelo no disponible: {exc.codigo}",
+                motivo_plantilla=f"modelo no disponible: {exc.codigo}{detalle}",
             )
     else:
         estado = EstadoGrafo(

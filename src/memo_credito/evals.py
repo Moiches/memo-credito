@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import statistics
+import time
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
@@ -102,12 +103,46 @@ def evaluar_caso(res: ResultadoProceso, caso: dict[str, Any], corrida: int) -> R
     )
 
 
-def correr(modo: str, corridas: int, cfg: Config, datos: Path, casos_yaml: Path) -> list[ResultadoCaso]:
+class LimitadorRitmo:
+    """Espacia las llamadas al LLM para no rebasar `rpm` solicitudes por minuto en toda la corrida."""
+
+    def __init__(self, rpm: float) -> None:
+        self.intervalo = 60.0 / rpm
+        self.ultima = float("-inf")
+
+    def esperar(self) -> None:
+        pendiente = self.ultima + self.intervalo - time.monotonic()
+        if pendiente > 0:
+            time.sleep(pendiente)
+        self.ultima = time.monotonic()
+
+
+class ClienteConRitmo:
+    """Envuelve un ClienteLLM y aplica el limitador antes de cada llamada; el resto se delega."""
+
+    def __init__(self, cliente: Any, limitador: LimitadorRitmo) -> None:
+        self._cliente = cliente
+        self._limitador = limitador
+
+    def __getattr__(self, nombre: str) -> Any:
+        return getattr(self._cliente, nombre)
+
+    def redactar(self, *args: Any, **kwargs: Any) -> Any:
+        self._limitador.esperar()
+        return self._cliente.redactar(*args, **kwargs)
+
+
+def correr(
+    modo: str, corridas: int, cfg: Config, datos: Path, casos_yaml: Path, rpm: float | None = None
+) -> list[ResultadoCaso]:
     casos = yaml.safe_load(casos_yaml.read_text(encoding="utf-8"))["casos"]
     resultados = []
+    limitador = LimitadorRitmo(rpm) if rpm else None
     for folio, caso in casos.items():
         for corrida in range(1, corridas + 1):
             cliente = _cliente(modo, cfg)
+            if limitador is not None:
+                cliente = ClienteConRitmo(cliente, limitador)
             res = procesar_carpeta(
                 datos / folio, cfg, cliente, salida_base=None, fecha="2026-11-25", ejecucion=f"eval-{corrida}"
             )

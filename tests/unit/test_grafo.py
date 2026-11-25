@@ -70,7 +70,31 @@ def test_ruta_guardrail_bloquea_salida_y_corrige(contexto):
 
 def test_modelo_no_disponible_cae_a_plantilla(contexto):
     res, _ = _correr(contexto, [LLMNoDisponible("ThrottlingException")])
-    assert res.estado.origen == "plantilla" and "LLM_NO_DISPONIBLE" in (res.estado.motivo_plantilla or "")
+    assert res.estado.origen == "plantilla"
+    assert res.estado.motivo_plantilla == "modelo no disponible: LLM_NO_DISPONIBLE (ThrottlingException)"
+
+
+def test_en_lambda_el_throttling_se_propaga_para_que_step_functions_reintente(contexto):
+    exp, a, h, cfg = contexto
+    with pytest.raises(LLMNoDisponible):
+        redactar_memo(
+            exp, a, h, ClienteGuionado([LLMNoDisponible("ThrottlingException")]), cfg, META, propagar_no_disponible=True
+        )
+
+
+def test_limitador_de_ritmo_espacia_las_llamadas(monkeypatch):
+    from memo_credito import evals
+
+    reloj = {"t": 100.0}
+    esperas: list[float] = []
+    monkeypatch.setattr(evals.time, "monotonic", lambda: reloj["t"])
+    monkeypatch.setattr(evals.time, "sleep", lambda s: (esperas.append(s), reloj.__setitem__("t", reloj["t"] + s)))
+    limitador = evals.LimitadorRitmo(rpm=6)
+    cliente = evals.ClienteConRitmo(ClienteSimulado(), limitador)
+    limitador.esperar()
+    reloj["t"] += 4.0
+    limitador.esperar()
+    assert esperas == [6.0] and cliente.modo == "simulado"
 
 
 def test_nodos_registran_costo_tokens_y_errores_por_intento(contexto):

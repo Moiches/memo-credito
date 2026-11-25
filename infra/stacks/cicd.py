@@ -1,9 +1,9 @@
-"""CI/CD: proveedor OIDC de GitHub y roles sin llaves de larga duración.
+"""CI/CD (§18.2): proveedor OIDC de GitHub y roles sin llaves de larga duración.
 
-- ci: pull requests; solo puede asumir el rol de lookup de CDK (cdk diff).
-- despliegue-dev / despliegue-prod: solo desde el *environment* de GitHub correspondiente (prod exige aprobación);
-  solo pueden asumir los roles de bootstrap de CDK, que son los que tocan CloudFormation.
-- evals: evals reales contra Bedrock con el guardrail obligatorio; sin acceso a documentos ni a datos.
+- gh-pr-lectura: pull requests; solo asume el rol de lookup de CDK (cdk diff).
+- gh-deploy-dev / gh-deploy-prod: solo desde el environment de GitHub correspondiente (prod exige revisores);
+  solo asumen los roles de bootstrap de CDK, que son los que operan CloudFormation.
+- gh-pruebas-dev: integración, carga y evals reales en dev, limitado a folios IT-* y LT-*. Nunca despliega.
 """
 
 from __future__ import annotations
@@ -16,26 +16,29 @@ from constructs import Construct
 
 from infra.config import Entorno
 from infra.nag import suprimir
+from infra.stacks.workflow import REGIONES_PERFIL_US
 
 EMISOR = "token.actions.githubusercontent.com"
-CALIFICADOR_CDK = "hnb659fds"
+CALIFICADOR_CDK = "memocred"  # igual a @aws-cdk/core:bootstrapQualifier en cdk.json
+FOLIOS_PRUEBA = ("IT-*", "LT-*")
 
 
 class CicdStack(Stack):
-    def __init__(self, scope: Construct, id_: str, repo: str, entorno_evals: Entorno, **kwargs: Any) -> None:
+    def __init__(self, scope: Construct, id_: str, repo: str, dev: Entorno, **kwargs: Any) -> None:
         super().__init__(scope, id_, **kwargs)
         if repo.count("/") != 1:
             raise ValueError("repo debe tener la forma <owner>/<repo>")
         self.proveedor = iam.OidcProviderNative(
             self, "GitHubOidc", url=f"https://{EMISOR}", client_ids=["sts.amazonaws.com"]
         )
-        roles_cdk = f"arn:{Aws.PARTITION}:iam::{Aws.ACCOUNT_ID}:role/cdk-{CALIFICADOR_CDK}-%s-role-{Aws.ACCOUNT_ID}-{Aws.REGION}"
+        cuenta, region, part = Aws.ACCOUNT_ID, Aws.REGION, Aws.PARTITION
+        rol_cdk = f"arn:{part}:iam::{cuenta}:role/cdk-{CALIFICADOR_CDK}-%s-role-{cuenta}-{region}"
 
         def rol(nombre: str, sujeto: str, sentencias: list[iam.PolicyStatement]) -> iam.Role:
             r = iam.Role(
                 self,
                 f"Rol{nombre.title().replace('-', '')}",
-                role_name=f"memo-credito-gha-{nombre}",
+                role_name=f"memo-credito-{nombre}",
                 max_session_duration=Duration.hours(1),
                 description=f"GitHub Actions ({sujeto})",
                 assumed_by=iam.WebIdentityPrincipal(
@@ -44,7 +47,7 @@ class CicdStack(Stack):
                         "StringEquals": {
                             f"{EMISOR}:aud": "sts.amazonaws.com",
                             f"{EMISOR}:sub": f"repo:{repo}:{sujeto}",
-                        },
+                        }
                     },
                 ),
             )
@@ -52,34 +55,81 @@ class CicdStack(Stack):
                 r.add_to_policy(s)
             return r
 
-        rol("ci", "pull_request", [iam.PolicyStatement(actions=["sts:AssumeRole"], resources=[roles_cdk % "lookup"])])
+        rol(
+            "gh-pr-lectura",
+            "pull_request",
+            [iam.PolicyStatement(actions=["sts:AssumeRole"], resources=[rol_cdk % "lookup"])],
+        )
         for entorno in ("dev", "prod"):
             rol(
-                f"despliegue-{entorno}",
+                f"gh-deploy-{entorno}",
                 f"environment:{entorno}",
                 [
                     iam.PolicyStatement(
                         actions=["sts:AssumeRole", "sts:TagSession"],
-                        resources=[roles_cdk % r for r in ("deploy", "file-publishing", "image-publishing", "lookup")],
+                        # lookup: cdk.context.json no se versiona (contiene la cuenta), el synth consulta las AZs
+                        resources=[rol_cdk % r for r in ("deploy", "file-publishing", "image-publishing", "lookup")],
                     )
                 ],
             )
-        e = entorno_evals.nombre
-        parametros = f"arn:{Aws.PARTITION}:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/memo-credito/{e}/*"
-        modelo = entorno_evals.app.llm.modelo_id
+
+        p = dev.prefijo
+        bucket = f"arn:{part}:s3:::{p}-datos-{cuenta}"
+        tabla = f"arn:{part}:dynamodb:{region}:{cuenta}:table/{p}-solicitudes"
+        modelo = dev.app.llm.modelo_id
         rol(
-            "evals",
-            "environment:evals",
+            "gh-pruebas-dev",
+            "environment:dev",
             [
-                iam.PolicyStatement(actions=["ssm:GetParameter"], resources=[parametros]),
+                iam.PolicyStatement(
+                    actions=["s3:PutObject"], resources=[f"{bucket}/entrada/{f}" for f in FOLIOS_PRUEBA]
+                ),
+                iam.PolicyStatement(
+                    actions=["s3:GetObject"], resources=[f"{bucket}/trabajo/{f}" for f in FOLIOS_PRUEBA]
+                ),
+                iam.PolicyStatement(
+                    actions=["s3:PutObject"],
+                    resources=[f"{bucket}/revisiones/${{aws:userid}}/{f}" for f in FOLIOS_PRUEBA],
+                ),
+                iam.PolicyStatement(
+                    actions=["dynamodb:GetItem", "dynamodb:Query"],
+                    resources=[tabla],
+                    conditions={"ForAllValues:StringLike": {"dynamodb:LeadingKeys": list(FOLIOS_PRUEBA)}},
+                ),
+                iam.PolicyStatement(
+                    actions=["kms:Decrypt", "kms:GenerateDataKey"],
+                    resources=[f"arn:{part}:kms:{region}:{cuenta}:key/*"],
+                    conditions={
+                        "ForAnyValue:StringEquals": {"kms:ResourceAliases": [f"alias/{p}"]},
+                        "StringLike": {
+                            "kms:ViaService": [f"s3.{region}.amazonaws.com", f"dynamodb.{region}.amazonaws.com"]
+                        },
+                    },
+                ),
+                iam.PolicyStatement(
+                    actions=["ssm:GetParameter", "ssm:GetParametersByPath"],
+                    resources=[f"arn:{part}:ssm:{region}:{cuenta}:parameter/memo-credito/{dev.nombre}*"],
+                ),
+                iam.PolicyStatement(
+                    actions=["states:DescribeExecution", "states:GetExecutionHistory", "states:ListExecutions"],
+                    resources=[
+                        f"arn:{part}:states:{region}:{cuenta}:stateMachine:{p}-flujo",
+                        f"arn:{part}:states:{region}:{cuenta}:execution:{p}-flujo:*",
+                    ],
+                ),
+                iam.PolicyStatement(actions=["cloudwatch:GetMetricData"], resources=["*"]),
+                iam.PolicyStatement(
+                    actions=["logs:StartQuery", "logs:GetQueryResults"],
+                    resources=[f"arn:{part}:logs:{region}:{cuenta}:log-group:/aws/lambda/{p}-*"],
+                ),
                 iam.PolicyStatement(
                     actions=["bedrock:InvokeModel"],
                     resources=[
-                        f"arn:{Aws.PARTITION}:bedrock:{Aws.REGION}:{Aws.ACCOUNT_ID}:inference-profile/{modelo}",
-                        f"arn:{Aws.PARTITION}:bedrock:{Aws.REGION}:{Aws.ACCOUNT_ID}:application-inference-profile/*",
+                        f"arn:{part}:bedrock:{region}:{cuenta}:inference-profile/{modelo}",
+                        f"arn:{part}:bedrock:{region}:{cuenta}:application-inference-profile/*",
                         *[
-                            f"arn:{Aws.PARTITION}:bedrock:{r}::foundation-model/{modelo.split('.', 1)[1]}"
-                            for r in ("us-east-1", "us-east-2", "us-west-2")
+                            f"arn:{part}:bedrock:{r}::foundation-model/{modelo.split('.', 1)[1]}"
+                            for r in REGIONES_PERFIL_US
                         ],
                     ],
                 ),
@@ -92,10 +142,10 @@ class CicdStack(Stack):
                 iam.PolicyStatement(
                     actions=["bedrock:ApplyGuardrail"],
                     resources=[
-                        f"arn:{Aws.PARTITION}:bedrock:{Aws.REGION}:{Aws.ACCOUNT_ID}:guardrail/*",
+                        f"arn:{part}:bedrock:{region}:{cuenta}:guardrail/*",
                         *[
-                            f"arn:{Aws.PARTITION}:bedrock:{r}:{Aws.ACCOUNT_ID}:guardrail-profile/us.guardrail.v1:0"
-                            for r in ("us-east-1", "us-east-2", "us-west-2")
+                            f"arn:{part}:bedrock:{r}:{cuenta}:guardrail-profile/us.guardrail.v1:0"
+                            for r in REGIONES_PERFIL_US
                         ],
                     ],
                 ),
@@ -106,8 +156,9 @@ class CicdStack(Stack):
             [
                 (
                     "AwsSolutions-IAM5",
-                    "Roles de bootstrap de CDK por patrón de nombre; perfiles de aplicación y guardrails del "
-                    "entorno de evals cuyo id se crea en el despliegue; el Deny exige guardrail en toda invocación.",
+                    "Roles de bootstrap de CDK por patrón de nombre; prefijos de folios de prueba (IT-*, LT-*); "
+                    "llave KMS acotada por alias; métricas sin permisos a nivel de recurso; guardrails y perfiles "
+                    "de aplicación cuyo id nace en el despliegue; el Deny exige guardrail en toda invocación.",
                 )
             ],
         )

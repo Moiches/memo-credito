@@ -29,7 +29,7 @@ def main() -> None:
             app,
             "MemoCredito-Cicd",
             repo=str(repo),
-            entorno_evals=cargar_entorno("dev"),
+            dev=cargar_entorno("dev"),
             env=env,
             stack_name="memo-credito-cicd",
             description="memo-credito: OIDC de GitHub y roles de CI/CD",

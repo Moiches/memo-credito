@@ -61,7 +61,9 @@ def test_maquina_de_estados(sintesis: dict[str, Sintesis], entorno: str) -> None
     assert f'"TimeoutSeconds":{s.entorno.infra.revision_sla_s}' in definicion
     assert '"ErrorEquals":["States.Timeout"]' in definicion
     assert f'"MaxConcurrency":{s.entorno.infra.map_max_concurrency}' in definicion
-    assert '"forzar_plantilla":"falla del paso de redacción"' in definicion
+    assert "States.Format('falla del paso de redacción: {}', $.error_redaccion.Error)" in definicion
+    i = definicion.index('"RedactarMemo":{')
+    assert '"ErrorEquals":["LLMNoDisponible"],"IntervalSeconds":30,"MaxAttempts":4' in definicion[i : i + 1500]
 
 
 @pytest.mark.parametrize("entorno", ENTORNOS)
@@ -170,3 +172,31 @@ def test_reconocimientos_de_cdk_nag_acotados(sintesis: dict[str, Sintesis], ento
     reglas = set(re.findall(r"AwsSolutions-[A-Z]+\d+", texto))
     assert reglas <= permitidas, reglas - permitidas
     assert all(path != stage.node.path for path, _ in encontrados), "sin reconocimientos globales en el stage"
+
+
+def test_calificador_de_bootstrap_consistente() -> None:
+    from infra.config import RAIZ
+    from infra.stacks.cicd import CALIFICADOR_CDK
+
+    cdk = json.loads((RAIZ / "cdk.json").read_text(encoding="utf-8"))
+    assert cdk["context"]["@aws-cdk/core:bootstrapQualifier"] == CALIFICADOR_CDK
+    assert cdk["toolkitStackName"] == f"CDKToolkit-{CALIFICADOR_CDK}"
+
+
+@pytest.mark.parametrize("entorno", ENTORNOS)
+def test_descripcion_del_perfil_cumple_el_esquema_de_cloudformation(
+    sintesis: dict[str, Sintesis], entorno: str
+) -> None:
+    perfil = _uno(sintesis[entorno], "AWS::Bedrock::ApplicationInferenceProfile")["Properties"]
+    assert re.fullmatch(r"([0-9a-zA-Z:.][ _-]?)+", perfil["Description"]), perfil["Description"]
+
+
+@pytest.mark.parametrize("entorno", ENTORNOS)
+def test_tareas_lambda_reciben_objetos_no_literales(sintesis: dict[str, Sintesis], entorno: str) -> None:
+    """Regresión: "Parameters": "$" (string) hacía que extraer recibiera el texto "$" en lugar del documento."""
+    sm = _uno(sintesis[entorno], "AWS::StepFunctions::StateMachine")["Properties"]
+    definicion = texto_plano(sm["DefinitionString"])
+    assert '"Parameters":"' not in definicion
+    i = definicion.index('"ExtraerDocumento":{')
+    estado = definicion[i : definicion.index("}}", definicion.index('"Resource"', i))]
+    assert '"Parameters"' not in estado and '"Payload' not in estado

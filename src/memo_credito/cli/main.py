@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -59,7 +60,8 @@ def cmd_evals(args: argparse.Namespace) -> int:
             return 0
         print("El prompt o el modelo cambiaron y no hay una aprobación vigente: corre `tareas.py evals-real`.")
         return 1
-    resultados = evals.correr(args.modo, args.corridas, cfg, Path(args.datos), RAIZ / "evals" / "casos.yaml")
+    rpm = args.rpm if args.modo == "bedrock" else None
+    resultados = evals.correr(args.modo, args.corridas, cfg, Path(args.datos), RAIZ / "evals" / "casos.yaml", rpm)
     tabla = evals.scorecard(resultados, args.modo, cfg)
     print(tabla)
     sufijo = "local_simulado" if args.modo == "simulado" else f"bedrock_{args.corridas}x"
@@ -144,6 +146,9 @@ def construir_parser() -> argparse.ArgumentParser:
     s.add_argument("--corridas", type=int, default=1)
     s.add_argument("--datos", default=str(DATOS))
     s.add_argument("--verificar-candado", action="store_true")
+    s.add_argument(
+        "--rpm", type=float, default=6.0, help="máximo de llamadas por minuto al LLM real (cuota de la cuenta)"
+    )
     s.set_defaults(fn=cmd_evals)
 
     s = sub.add_parser("diagrama", help="genera el diagrama Mermaid del grafo desde el código")
@@ -162,6 +167,11 @@ def construir_parser() -> argparse.ArgumentParser:
     s.add_argument("--salida", default=str(RAIZ / "salidas"))
     s.set_defaults(fn=cmd_auditoria)
 
+    s = sub.add_parser("invocar", help="invoca un handler de Lambda en proceso con un evento JSON (sin Docker)")
+    s.add_argument("handler", choices=HANDLERS)
+    s.add_argument("evento", help="ruta a un JSON con el evento")
+    s.set_defaults(fn=cmd_invocar)
+
     try:
         from memo_credito.cli import nube
 
@@ -169,6 +179,35 @@ def construir_parser() -> argparse.ArgumentParser:
     except ImportError:  # pragma: no cover
         pass
     return p
+
+
+HANDLERS = [
+    "ingesta",
+    "extraer",
+    "validar_calcular",
+    "redactar",
+    "esperar_revision",
+    "aplicar_revision",
+    "registrar_revision",
+]
+
+
+def cmd_invocar(args: argparse.Namespace) -> int:
+    """Equivalente local de `sam local invoke` sin Docker; usa las variables de entorno y credenciales actuales."""
+    import importlib
+    from types import SimpleNamespace
+
+    modulo = importlib.import_module(f"memo_credito.handlers.{args.handler}")
+    evento = json.loads(Path(args.evento).read_text(encoding="utf-8"))
+    contexto = SimpleNamespace(
+        function_name=f"local-{args.handler}",
+        memory_limit_in_mb=1024,
+        invoked_function_arn="arn:aws:lambda:local:000000000000:function:local",
+        aws_request_id="local",
+        get_remaining_time_in_millis=lambda: 300_000,
+    )
+    print(json.dumps(modulo.handler(evento, contexto), ensure_ascii=False, indent=2, default=str))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> None:

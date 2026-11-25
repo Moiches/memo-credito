@@ -96,7 +96,9 @@ def handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
 
     almacen = AlmacenS3(env("BUCKET_AUDITORIA"))
     prefijo = f"{folio}/{ejecucion}"
-    escribir_parte(almacen, prefijo, "04_revision.json", registro)
+    # Objeción 8 del plan: el memo final entra a la auditoría inmutable solo si cambió y no trae PII
+    parte = {**registro, "memo_final": None if (pii or sin_cambios) else final}
+    escribir_parte(almacen, prefijo, "04_revision.json", parte)
     manifiesto = escribir_manifiesto(almacen, prefijo)
 
     if registro["categoria_error"] != "ninguna" or estado_final == "REQUIERE_CAMBIOS":

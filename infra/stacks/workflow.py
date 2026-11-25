@@ -31,13 +31,7 @@ from infra.stacks.datos_seguridad import DatosSeguridadStack
 REGIONES_PERFIL_US = ("us-east-1", "us-east-2", "us-west-2")
 CURP = r"\b[A-Z][AEIOUX][A-Z]{2}\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z\d]\d\b"
 RFC = r"\b[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}\b"
-ERRORES_LAMBDA = [
-    "Lambda.ServiceException",
-    "Lambda.AWSLambdaException",
-    "Lambda.SdkClientException",
-    "Lambda.TooManyRequestsException",
-    "Lambda.Unknown",
-]
+ERRORES_LAMBDA = ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.Unknown"]
 
 
 class WorkflowStack(Stack):
@@ -158,7 +152,7 @@ class WorkflowStack(Stack):
                 self,
                 "PerfilInferencia",
                 inference_profile_name=f"{p}-redaccion",
-                description=f"Redacción de memos ({app.llm.modelo_id})",
+                description=f"Redaccion de memos con {app.llm.modelo_id}",
                 model_source=bedrock.CfnApplicationInferenceProfile.InferenceProfileModelSourceProperty(
                     copy_from=perfil_sistema
                 ),
@@ -452,16 +446,26 @@ class WorkflowStack(Stack):
         self._rol(fn).add_to_principal_policy(iam.PolicyStatement(actions=acciones, resources=[arn]))
 
     def _invocar(
-        self, id_: str, fn: lambda_.IFunction, payload: dict[str, Any] | sfn.TaskInput, resultado: str
+        self, id_: str, fn: lambda_.IFunction, payload: dict[str, Any] | None, resultado: str
     ) -> tasks.LambdaInvoke:
+        # payload=None: la Lambda recibe la entrada completa del estado. Ojo: TaskInput.from_json_path_at("$") con
+        # payload_response_only se renderiza como el literal "Parameters": "$" (la Lambda recibiría el string "$").
         tarea = tasks.LambdaInvoke(
             self,
             id_,
             lambda_function=fn,
-            payload=payload if isinstance(payload, sfn.TaskInput) else sfn.TaskInput.from_object(payload),
+            payload=None if payload is None else sfn.TaskInput.from_object(payload),
             payload_response_only=True,
             result_path=resultado,
             retry_on_service_exceptions=False,
+        )
+        # Concurrencia de la cuenta baja (10 en dev): TooManyRequests espera más antes de rendirse
+        tarea.add_retry(
+            errors=["Lambda.TooManyRequestsException"],
+            interval=Duration.seconds(3),
+            max_attempts=6,
+            backoff_rate=2,
+            jitter_strategy=sfn.JitterType.FULL,
         )
         tarea.add_retry(
             errors=ERRORES_LAMBDA,
@@ -534,9 +538,7 @@ class WorkflowStack(Stack):
             item_selector={"folio.$": "$.folio", "ejecucion.$": "$.ejecucion", "doc.$": "$$.Map.Item.Value"},
             result_path="$.extracciones",
         )
-        mapa.item_processor(
-            self._invocar("ExtraerDocumento", self.fn_extraer, sfn.TaskInput.from_json_path_at("$"), "$")
-        )
+        mapa.item_processor(self._invocar("ExtraerDocumento", self.fn_extraer, None, "$"))
         validar = self._invocar(
             "ValidarYCalcular",
             self.fn_validar,
@@ -557,7 +559,10 @@ class WorkflowStack(Stack):
         redactar_plantilla = self._invocar(
             "RedactarConPlantilla",
             self.fn_redactar,
-            {**carga_redaccion, "forzar_plantilla": "falla del paso de redacción"},
+            {
+                **carga_redaccion,
+                "forzar_plantilla.$": "States.Format('falla del paso de redacción: {}', $.error_redaccion.Error)",
+            },
             "$.redaccion",
         )
         esperar = tasks.LambdaInvoke(
@@ -618,6 +623,14 @@ class WorkflowStack(Stack):
         for paso in (mapa, validar, redactar_plantilla, registrar_revision):
             paso.add_catch(manejo_error, errors=["States.ALL"], result_path="$.error")
         registrar_inicio.add_catch(manejo_error, errors=["States.ALL"], result_path="$.error")
+        # Throttling o timeouts de Bedrock: esperar y reintentar (la cuota en dev es de 10 RPM); después, plantilla
+        redactar.add_retry(
+            errors=["LLMNoDisponible"],
+            interval=Duration.seconds(30),
+            max_attempts=4,
+            backoff_rate=2,
+            jitter_strategy=sfn.JitterType.FULL,
+        )
         redactar.add_catch(redactar_plantilla, errors=["States.ALL"], result_path="$.error_redaccion")
         esperar.add_catch(escalar, errors=["States.Timeout"], result_path="$.timeout_revision")
         esperar.add_catch(manejo_error, errors=["States.ALL"], result_path="$.error")

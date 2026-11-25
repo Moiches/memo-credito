@@ -69,7 +69,10 @@ def handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     analisis = Analisis.model_validate(contexto["analisis"])
     hechos = HechosParaLLM.model_validate(contexto["hechos"])
     canarios_sol = canarios(leer_s3(bucket, f"entrada/{folio}/solicitud.json"))
-    cliente = _cliente(event.get("modo_llm") or cfg.llm.modo)
+    modo = event.get("modo_llm") or cfg.llm.modo
+    # Interruptor del runbook: modo "plantilla" no llama al LLM y marca el memo "requiere revisión"
+    forzar = event.get("forzar_plantilla") or ("interruptor modo_llm=plantilla" if modo == "plantilla" else None)
+    cliente = _cliente(modo)
     meta = Metadatos(
         fecha=ahora_mx().date().isoformat(),
         ejecucion=ejecucion,
@@ -86,7 +89,8 @@ def handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
         cfg,
         meta,
         canarios_sol,
-        forzar_plantilla=event.get("forzar_plantilla"),
+        forzar_plantilla=forzar,
+        propagar_no_disponible=forzar is None,
         subsegmento=lambda nombre: tracer.provider.in_subsegment(nombre),
     )
     memo_sha = sha256_texto(res.memo)
