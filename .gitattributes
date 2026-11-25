@@ -1,0 +1,6 @@
+# PDFs y binarios: nunca convertir finales de línea (cambiaría su sha256)
+* text=auto eol=lf
+*.pdf binary
+*.zip binary
+*.png binary
+*.jpg binary
