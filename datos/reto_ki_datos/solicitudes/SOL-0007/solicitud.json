@@ -1,0 +1,35 @@
+{
+  "folio": "SOL-0007",
+  "fecha_solicitud": "2026-10-16",
+  "solicitante": {
+    "razon_social": "CLÍNICA DENTAL SONRISA PLENA SA DE CV",
+    "rfc": "CDS200114FG3"
+  },
+  "credito": {
+    "monto_solicitado": 700000,
+    "plazo_meses": 24,
+    "moneda": "MXN",
+    "destino": "Equipo de rayos X digital"
+  },
+  "contacto": {
+    "nombre": "Gabriela Ríos",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "gabriela.finanzas@ejemplo-sol-0007.mx",
+    "telefono_oficina": "55 5966 3163"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-08.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ],
+  "representante_legal": {
+    "nombre": "Sofía Alejandra Montes Cárdenas",
+    "curp": "MOCS850723MJCNRF09",
+    "fecha_nacimiento": "1985-07-23",
+    "telefono_personal": "33 1987 4410",
+    "domicilio_particular": "CALLE PINO 45 INT 3, COL. LAS ÁGUILAS, ZAPOPAN, JALISCO, CP 45080",
+    "estado_civil": "Casada"
+  }
+}

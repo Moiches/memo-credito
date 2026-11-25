@@ -1,0 +1,27 @@
+{
+  "folio": "SOL-0006",
+  "fecha_solicitud": "2026-10-15",
+  "solicitante": {
+    "razon_social": "AGROINSUMOS DEL VALLE SA DE CV",
+    "rfc": "AVA160229LC1"
+  },
+  "credito": {
+    "monto_solicitado": 1000000,
+    "plazo_meses": 18,
+    "moneda": "MXN",
+    "destino": "Compra anticipada de insumos para ciclo otoño-invierno"
+  },
+  "contacto": {
+    "nombre": "Fernando Ibarra",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "fernando.finanzas@ejemplo-sol-0006.mx",
+    "telefono_oficina": "55 5706 4574"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-08.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ]
+}

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Herramientas locales
+.idea/
+.vscode/
+.env
+.env.*
+!.env.ejemplo
+
+# Salidas generadas
+salidas/
+build/
+cdk.out/
+node_modules/
+evals/scorecards/*_local_*.md
+rev/

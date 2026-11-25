@@ -1,0 +1,27 @@
+{
+  "folio": "SOL-0008",
+  "fecha_solicitud": "2026-10-17",
+  "solicitante": {
+    "razon_social": "CONSTRUCTORA PIEDRA ANGULAR SA DE CV",
+    "rfc": "CPA141120JS5"
+  },
+  "credito": {
+    "monto_solicitado": 3000000,
+    "plazo_meses": 36,
+    "moneda": "MXN",
+    "destino": "Capital de trabajo para obra contratada"
+  },
+  "contacto": {
+    "nombre": "Héctor Medina",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "héctor.finanzas@ejemplo-sol-0008.mx",
+    "telefono_oficina": "55 5944 7379"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-08.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ]
+}

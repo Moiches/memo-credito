@@ -1,0 +1,27 @@
+{
+  "folio": "SOL-0005",
+  "fecha_solicitud": "2026-10-14",
+  "solicitante": {
+    "razon_social": "SOLUCIONES DIGITALES NEXO SA DE CV",
+    "rfc": "SDN210611RT8"
+  },
+  "credito": {
+    "monto_solicitado": 2000000,
+    "plazo_meses": 24,
+    "moneda": "MXN",
+    "destino": "Contratación de personal para nuevo contrato"
+  },
+  "contacto": {
+    "nombre": "Andrés Villalobos",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "andrés.finanzas@ejemplo-sol-0005.mx",
+    "telefono_oficina": "55 5791 8785"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-08.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ]
+}

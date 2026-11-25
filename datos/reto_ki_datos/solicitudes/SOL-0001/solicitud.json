@@ -1,0 +1,27 @@
+{
+  "folio": "SOL-0001",
+  "fecha_solicitud": "2026-10-10",
+  "solicitante": {
+    "razon_social": "ABARROTES Y SURTIDOS LA PALMA SA DE CV",
+    "rfc": "ASP170418QK2"
+  },
+  "credito": {
+    "monto_solicitado": 1200000,
+    "plazo_meses": 24,
+    "moneda": "MXN",
+    "destino": "Capital de trabajo para inventario de temporada"
+  },
+  "contacto": {
+    "nombre": "Mariana Ortega",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "mariana.finanzas@ejemplo-sol-0001.mx",
+    "telefono_oficina": "55 5374 4329"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-08.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ]
+}

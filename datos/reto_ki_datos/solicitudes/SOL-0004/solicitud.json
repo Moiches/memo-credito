@@ -1,0 +1,26 @@
+{
+  "folio": "SOL-0004",
+  "fecha_solicitud": "2026-10-13",
+  "solicitante": {
+    "razon_social": "PANIFICADORA DOÑA LUPE SA DE CV",
+    "rfc": "PDL180305MN4"
+  },
+  "credito": {
+    "monto_solicitado": 500000,
+    "plazo_meses": 12,
+    "moneda": "MXN",
+    "destino": "Ampliación de punto de venta"
+  },
+  "contacto": {
+    "nombre": "Lucía Herrera",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "lucía.finanzas@ejemplo-sol-0004.mx",
+    "telefono_oficina": "55 5541 2137"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ]
+}

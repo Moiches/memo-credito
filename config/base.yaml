@@ -1,0 +1,66 @@
+# Configuración común. Los umbrales de política NO vienen en el reto: son supuestos configurables (§3.4 del plan).
+politica:
+  meses_flujo: 3
+  tasa_anual_referencia: "0.24"
+  umbral_capacidad_minima: "1.00"
+  umbral_capacidad_holgura: "1.25"
+  umbral_apalancamiento: "2.00"
+  factor_deposito_atipico: "3"
+  vigencia_constancia_dias: 30
+
+limites:
+  pdf_max_bytes: 5242880
+  pdf_max_paginas: 10
+  json_max_bytes: 65536
+  max_archivos: 12
+  texto_libre_max: 200
+  hechos_max_bytes: 8192
+  max_caracteres_concepto: 80
+
+seguridad:
+  # Patrones de texto con forma de instrucción (sobre texto en mayúsculas y sin acentos).
+  # Dispara con >= 2 patrones, o 1 patrón + señal estructural (más de una línea o más de max_caracteres_concepto).
+  patrones_instruccion:
+    - '\bIGNOR'
+    - '\bOLVID'
+    - '\bINSTRUCCION'
+    - '\bSISTEMA\b'
+    - '\bMODELO\b'
+    - '\bASISTENTE\b'
+    - '\bPROMPT\b'
+    - '\bRECOMIEND'
+    - '\bAPRUEB|\bAPROBAR\b'
+    - 'SIN OBSERVACIONES'
+    - '\bDISREGARD\b'
+    - '\bIGNORE\b'
+    - 'SYSTEM\s*:'
+    - '\bYOU ARE\b'
+    - '<\s*/?\s*[A-Z_]+\s*>'
+    - '```'
+
+llm:
+  modo: simulado            # simulado | bedrock | plantilla
+  permitir_override_modo: false
+  region: us-east-1
+  # Modelo disponible hoy en la cuenta (Claude 5.x no está habilitado: ver ADR-0007).
+  modelo_id: us.anthropic.claude-sonnet-4-6
+  modelo_objetivo: us.anthropic.claude-sonnet-5-5
+  max_tokens: 2000
+  effort: low               # null para modelos sin effort (p. ej. Haiku 4.5)
+  max_correcciones: 2
+  prompt: redaccion_v1.md
+  esquema: salida_v1.schema.json
+
+precios:
+  fuente: "AWS Price List API (AmazonBedrockFoundationModels y AmazonBedrock), us-east-1, consultado 2026-11-25; perfil geográfico (Regional CRIS)"
+  modelos:
+    "us.anthropic.claude-sonnet-4-6": {entrada_mtok: "3.30", salida_mtok: "16.50", cache_lectura_mtok: "0.33", cache_escritura_mtok: "4.125"}
+    "us.anthropic.claude-haiku-4-5-20251001-v1:0": {entrada_mtok: "1.10", salida_mtok: "5.50", cache_lectura_mtok: "0.11", cache_escritura_mtok: "1.375"}
+    "us.anthropic.claude-sonnet-5-5": {entrada_mtok: "2.20", salida_mtok: "11.00", cache_lectura_mtok: "0.11", cache_escritura_mtok: "2.75"}
+    "us.anthropic.claude-haiku-5-5": {entrada_mtok: "0.11", salida_mtok: "0.55", cache_lectura_mtok: "0.011", cache_escritura_mtok: "0.1375"}
+    "us.anthropic.claude-opus-5-5": {entrada_mtok: "4.40", salida_mtok: "22.00", cache_lectura_mtok: "0.22", cache_escritura_mtok: "5.50"}
+  guardrail_por_1k_unidades:
+    contenido: "0.15"
+    temas: "0.15"
+    pii: "0.10"
+    regex: "0"

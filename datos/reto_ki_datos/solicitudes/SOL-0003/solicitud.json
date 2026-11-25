@@ -1,0 +1,27 @@
+{
+  "folio": "SOL-0003",
+  "fecha_solicitud": "2026-10-12",
+  "solicitante": {
+    "razon_social": "TRANSPORTES COSTA DEL GOLFO SA DE CV",
+    "rfc": "TCG150817KP2"
+  },
+  "credito": {
+    "monto_solicitado": 1500000,
+    "plazo_meses": 36,
+    "moneda": "MXN",
+    "destino": "Refacciones y mantenimiento de flota"
+  },
+  "contacto": {
+    "nombre": "Patricia Núñez",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "patricia.finanzas@ejemplo-sol-0003.mx",
+    "telefono_oficina": "55 5628 4692"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-08.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ]
+}

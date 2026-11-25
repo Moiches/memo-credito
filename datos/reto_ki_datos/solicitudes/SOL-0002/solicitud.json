@@ -1,0 +1,27 @@
+{
+  "folio": "SOL-0002",
+  "fecha_solicitud": "2026-10-11",
+  "solicitante": {
+    "razon_social": "TALLERES INDUSTRIALES MERIDA SA DE CV",
+    "rfc": "TIM190923HB6"
+  },
+  "credito": {
+    "monto_solicitado": 800000,
+    "plazo_meses": 18,
+    "moneda": "MXN",
+    "destino": "Compra de maquinaria (dobladora CNC)"
+  },
+  "contacto": {
+    "nombre": "Rodrigo Salinas",
+    "puesto": "Director(a) de Finanzas",
+    "correo": "rodrigo.finanzas@ejemplo-sol-0002.mx",
+    "telefono_oficina": "55 5318 8765"
+  },
+  "documentos": [
+    "constancia_situacion_fiscal.pdf",
+    "estado_cuenta_2026-07.pdf",
+    "estado_cuenta_2026-08.pdf",
+    "estado_cuenta_2026-09.pdf",
+    "estados_financieros_2025.pdf"
+  ]
+}

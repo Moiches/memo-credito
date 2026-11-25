@@ -1,0 +1,78 @@
+[project]
+name = "memo-credito"
+version = "0.1.0"
+description = "Memo de crédito asistido para PyMEs: núcleo determinista + redacción verificada con LLM (Bedrock)."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pdfplumber==0.11.11",
+    "pydantic==2.14.4",
+    "langgraph==1.2.24",
+    "aws-lambda-powertools[tracer]==3.41.0",
+    "boto3==1.44.11",
+    "pyyaml==6.0.4",
+]
+
+[project.scripts]
+memo = "memo_credito.cli.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",
+    "pytest-cov==7.0.0",
+    "pytest-socket==0.7.0",
+    "ruff==0.14.6",
+    "mypy==1.18.2",
+    "types-PyYAML",
+    "moto[s3,dynamodb,stepfunctions]==5.1.14",
+    "reportlab==4.4.4",
+    "pre-commit==4.3.0",
+    "pip-audit==2.9.0",
+]
+infra = [
+    "aws-cdk-lib==2.278.0",
+    "constructs==10.8.1",
+    "cdk-nag==3.1.0",
+]
+
+[tool.uv]
+default-groups = ["dev", "infra"]
+
+[build-system]
+requires = ["uv_build>=0.9,<0.15"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["cdk.out", "build", "datos", "docs/anexos"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "S"]
+ignore = ["RUF001", "RUF002", "RUF003", "S101", "S311"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B017"]
+"scripts/**" = ["S"]
+"tareas.py" = ["S"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+files = ["src/memo_credito"]
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = ["pdfplumber.*", "pdfminer.*", "aws_lambda_powertools.*", "botocore.*", "boto3.*", "langgraph.*", "yaml.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-q -m 'not integracion'"
+markers = [
+    "integracion: tests contra el entorno desplegado (requiere credenciales)",
+    "bedrock: llamadas reales a Bedrock (cuestan dinero)",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
