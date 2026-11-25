@@ -8,6 +8,6 @@
   - Perfil de inferencia de aplicación etiquetado (proyecto, entorno, centro de costo) para atribuir el gasto.
   - Guardrail en tier Standard con el perfil `us.guardrail.v1:0`.
 - **Consecuencias:**
-  - Costo medido de unos USD 0.044 por memo con Sonnet 4.6, con 1 corrección en promedio.
+  - Costo medido de USD 0.024 por memo en promedio con Sonnet 4.6 en la corrida final de evals (40/40).
   - Migrar a 5.5 exige rehacer los evals reales y actualizar `evals/aprobaciones.json`.
   - El texto puede procesarse en las tres regiones de EE. UU. Es aceptable porque el LLM solo recibe hechos sin PII (regla 2).
