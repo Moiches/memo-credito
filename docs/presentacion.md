@@ -72,7 +72,7 @@ Presentación de 10 diapositivas. Las cifras provienen del repo y de la cuenta d
 ## 9. Implementado frente a propuesto
 
 - **Desplegado en dev:** todo el corte vertical: datos, flujo, guardrail, revisión, auditoría, alarmas, dashboard y presupuesto.
-- **Escrito sin ejecutar:** los workflows de GitHub Actions y el stack de OIDC (falta el repositorio). Prod se sintetiza y se prueba, pero no se desplegó.
+- **CI/CD en GitHub Actions con OIDC:** build, deploy-dev e integración (9/9) en verde. Prod se sintetiza y se prueba, pero no se desplegó: `deploy-prod` solo corre con `PROD_HABILITADO=true`.
 - **Propuesto:** Sonnet 5.5 (sin acceso en la cuenta), caché del prompt, Macie, extracción de respaldo con LLM, app web y multicuenta.
 - **Detalle:** `docs/implementado_vs_propuesto.md`.
 
