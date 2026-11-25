@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>memo-credito · Del expediente a un memo verificable</title>
+
+<!-- Tipografías: Cormorant Garamond (titulares en itálica), DM Sans (texto), Courier Prime (notas mecanografiadas) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400;1,500&family=DM+Sans:wght@400;500&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   CSS CUSTOM PROPERTIES (TEMA)
+   Un solo campo azul, tipografía amarilla y un acento verde azulado.
+   Cambia estos valores para cambiar todo el deck.
+   =========================================== */
+:root {
+    --navy: #2A3870;          /* campo único de todas las diapositivas */
+    --navy-deep: #1F2858;     /* panel izquierdo de comparación */
+    --navy-mid: #34407A;      /* panel derecho de comparación */
+    --yellow: #E8D85C;        /* texto principal */
+    --yellow-2: rgba(232,216,92,0.62);   /* texto secundario */
+    --yellow-3: rgba(232,216,92,0.32);   /* texto terciario, flechas */
+    --emph: #F5E168;          /* énfasis: romana más clara dentro de titulares en itálica */
+    --teal: #3A7878;          /* acento: kickers, notas, contadores, comilla */
+    --border: rgba(232,216,92,0.20);     /* filete de 1px */
+
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --mono: 'Courier Prime', 'Courier New', monospace;
+
+    /* Medidas del escenario 1920×1080 (6vw y 6vh del sistema original) */
+    --pad-x: 115px;
+    --pad-y: 65px;
+
+    --stage-bg: #1F2858;
+    --slide-bg: #2A3870;
+}
+
+/* ===========================================
+   BASE
+   =========================================== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES (viewport-base.css completo)
+   =========================================== */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* ===========================================
+   SISTEMA VELLUM: TIPOGRAFÍA Y PIEZAS COMUNES
+   Sin movimiento, sin sombras, sin esquinas redondeadas.
+   =========================================== */
+.slide { color: var(--yellow); font-family: var(--sans); }
+
+/* Notas del expositor: no se muestran */
+.notas { display: none; }
+
+/* Contenido centrado con aire alrededor; deja libre la franja de la nota inferior */
+.centro {
+    position: absolute;
+    left: var(--pad-x);
+    right: var(--pad-x);
+    top: var(--pad-y);
+    bottom: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+/* Kicker mecanografiado en verde azulado */
+.kicker {
+    font: 400 18px/1 var(--mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--teal);
+}
+
+/* Filete de 28px */
+.regla { width: 28px; height: 1px; background: var(--teal); margin: 30px auto; }
+
+/* Titulares: Cormorant Garamond en itálica; el énfasis cambia a romana 600 más clara */
+.display { font: italic 400 132px/1.0 var(--serif); letter-spacing: -0.01em; }
+.h1 { font: italic 400 120px/1.0 var(--serif); letter-spacing: -0.01em; }
+.h2 { font: italic 400 77px/1.05 var(--serif); }
+.h3 { font: italic 500 46px/1.15 var(--serif); }
+.display em, .h1 em, .h2 em, .h3 em, .cita em {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--emph);
+}
+
+.lead { font: 400 29px/1.6 var(--sans); color: var(--yellow-2); max-width: 1120px; }
+.lead em, .lista em, .celda p em { font-style: normal; font-weight: 500; color: var(--emph); }
+.pie {
+    font: 400 22px/1.5 var(--sans);
+    color: var(--yellow-2);
+}
+
+/* Nota fijada abajo a la izquierda: la firma del sistema, en todas las diapositivas */
+.pin {
+    position: absolute;
+    left: var(--pad-x);
+    bottom: 58px;
+    max-width: 430px;
+    font: 400 22px/1.5 var(--mono);
+    letter-spacing: 0.01em;
+    color: var(--teal);
+    text-align: left;
+}
+.pin span { display: block; }
+
+/* Lista numerada con contador mecanografiado */
+.lista {
+    list-style: none;
+    counter-reset: n;
+    width: 1240px;
+    margin: 0 auto;
+    text-align: left;
+}
+.lista li {
+    counter-increment: n;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: baseline;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    font: 400 30px/1.4 var(--sans);
+    color: var(--yellow);
+}
+.lista li:last-child { border-bottom: 1px solid var(--border); }
+.lista li::before {
+    content: counter(n, decimal-leading-zero);
+    font: 400 18px/1 var(--mono);
+    letter-spacing: 0.06em;
+    color: var(--teal);
+}
+
+/* Cifras grandes en itálica con etiqueta mecanografiada */
+.stats { display: flex; justify-content: center; align-items: stretch; margin-top: 70px; }
+.stat {
+    padding: 8px 44px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+}
+.stat:last-child { border-right: 0; }
+.stat b { display: block; font: italic 400 100px/1 var(--serif); letter-spacing: -0.02em; font-weight: 400; color: var(--yellow); }
+.stat span { display: block; margin-top: 22px; font: 400 18px/1.4 var(--mono); letter-spacing: 0.06em; color: var(--yellow-2); }
+
+/* Rejilla de 3 × 2 separada por filetes */
+.rejilla {
+    display: grid;
+    grid-template-columns: repeat(3, 440px);
+    margin-top: 60px;
+    border-top: 1px solid var(--border);
+}
+.celda {
+    padding: 30px 34px 32px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    text-align: center;
+}
+.celda:nth-child(3n) { border-right: 0; }
+.celda .h3 { font-size: 40px; }
+.celda p { margin-top: 12px; font: 400 22px/1.5 var(--sans); color: var(--yellow-2); }
+
+/* Diagramas: nodos con filete y flechas en SVG */
+.nodo {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 20px;
+    border: 1px solid var(--border);
+    text-align: center;
+}
+.nodo b { font: italic 400 40px/1.1 var(--serif); color: var(--yellow); }
+.nodo small { font: 400 16px/1.4 var(--mono); letter-spacing: 0.02em; color: var(--yellow-2); }
+.nodo.llm { border-color: rgba(58,120,120,0.9); }
+.flechas { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; }
+.flechas line { stroke: var(--yellow-3); stroke-width: 1.5; }
+.flechas text { font: 400 17px var(--mono); fill: var(--teal); letter-spacing: 0.04em; }
+.cabecera { position: absolute; left: 0; right: 0; text-align: center; }
+.cabecera .h2 { margin-top: 26px; }
+
+/* Cita con comilla verde azulada */
+.comilla { font: italic 400 134px/0.6 var(--serif); color: var(--teal); height: 70px; }
+.cita { font: italic 400 61px/1.25 var(--serif); max-width: 1400px; margin-top: 30px; }
+
+/* Paneles de comparación: dos tonos del mismo azul */
+.panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 960px;
+    padding: 110px var(--pad-x) 170px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+.panel.izq { left: 0; background: var(--navy-deep); }
+.panel.der { right: 0; background: var(--navy-mid); border-left: 1px solid rgba(232,216,92,0.18); }
+.etiqueta { font: 400 18px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--yellow-2); }
+.panel .h3 { margin-top: 26px; }
+.panel .lead { font-size: 25px; margin-top: 18px; max-width: 640px; }
+.panel .lista { width: 640px; margin-top: 34px; }
+.panel .lista li { font-size: 25px; padding: 12px 0; grid-template-columns: 54px 1fr; }
+
+/* Cifras secundarias de la portada (abajo a la derecha) */
+.cifras-portada {
+    position: absolute;
+    right: var(--pad-x);
+    bottom: 58px;
+    font: 400 22px/1.5 var(--mono);
+    color: var(--yellow-2);
+    text-align: right;
+}
+
+/* ===========================================
+   EDICIÓN EN LÍNEA (tecla E o esquina superior izquierda; Ctrl+S exporta)
+   =========================================== */
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle {
+    position: fixed; top: 18px; left: 18px; z-index: 10001;
+    width: 44px; height: 44px; border: 1px solid var(--border); background: var(--navy-deep);
+    color: var(--yellow); font: 400 20px/1 var(--mono); cursor: pointer;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+body.editando [contenteditable="true"] { outline: 1px dashed var(--yellow-3); outline-offset: 6px; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- ===========================================
+     01 · PORTADA
+     =========================================== -->
+<section class="slide active" aria-label="Portada">
+    <div class="centro">
+        <div class="kicker">memo-credito</div>
+        <div class="regla"></div>
+        <h1 class="display">Del expediente a un memo <em>verificable</em></h1>
+        <p class="lead" style="margin-top:52px">El sistema prepara el borrador con cifras exactas y evidencia. El analista revisa; el comité decide.</p>
+    </div>
+    <div class="pin"><span>01 / 10</span><span>Moises Cercas</span><span>26 nov 2026</span></div>
+    <div class="cifras-portada">40/40 evals reales · 100/100 en carga<br>USD 0.024 por memo</div>
+    <aside class="notas">Presentar el problema en una frase: preparar memos de crédito para PyMEs con cifras exactas y auditables. Adelantar que todo lo que se muestra está desplegado y medido en la cuenta de dev.</aside>
+</section>
+
+<!-- ===========================================
+     02 · TESIS
+     =========================================== -->
+<section class="slide" aria-label="Tesis">
+    <div class="centro">
+        <div class="kicker">La idea</div>
+        <div class="regla"></div>
+        <h2 class="h1" style="max-width:1500px">El código decide; el LLM <em>solo redacta</em>.</h2>
+        <p class="lead" style="margin-top:56px">Un workflow con núcleo determinista y un único punto agéntico, verificado y con respaldo. Tres documentos son tres parsers, no tres agentes.</p>
+    </div>
+    <div class="pin"><span>02 / 10</span><span>Tesis</span><span>ADR-0001 · ADR-0002</span></div>
+    <aside class="notas">Por qué no es multiagente: el orden de los pasos nunca cambia, no hay nada que planear y la exactitud la da el código. La agencia se concentra en la redacción, donde sí aporta.</aside>
+</section>
+
+<!-- ===========================================
+     03 · PATRONES DE ORQUESTACIÓN
+     =========================================== -->
+<section class="slide" aria-label="Patrones de orquestación">
+    <div class="centro">
+        <div class="kicker">Patrones de orquestación</div>
+        <h2 class="h2" style="margin:26px 0 54px">Cómo avanza un expediente</h2>
+        <ol class="lista">
+            <li><span><em>Workflow fijo</em> en Step Functions: el orden nunca cambia</span></li>
+            <li><span><em>Evento e idempotencia</em>: un evento repetido no duplica la ejecución</span></li>
+            <li><span><em>Fan-out / fan-in</em>: un extractor por documento, en paralelo</span></li>
+            <li><span><em>Humano en el ciclo</em>: task token, SLA y escalamiento por SNS</span></li>
+            <li><span><em>Degradación controlada</em>: reintento con backoff y luego plantilla</span></li>
+        </ol>
+    </div>
+    <div class="pin"><span>03 / 10</span><span>Orquestación</span></div>
+    <aside class="notas">S3 avisa a EventBridge; la ingesta valida sha256 y arranca la ejecución {folio}-{hash}. El Map extrae en paralelo. La revisión humana espera con task token y, si vence el SLA, SNS escala. Ante throttling, Step Functions reintenta antes de usar la plantilla.</aside>
+</section>
+
+<!-- ===========================================
+     04 · EL AGENTE ACOTADO (LANGGRAPH)
+     =========================================== -->
+<section class="slide" aria-label="Agente acotado">
+    <div class="cabecera" style="top:110px">
+        <div class="kicker">LangGraph · evaluador-optimizador</div>
+        <h2 class="h2">Un solo agente, <em>acotado</em></h2>
+    </div>
+    <div class="nodo llm" style="left:330px;top:400px;width:340px;height:130px"><b>Redactar</b><small>LLM · Bedrock con guardrail</small></div>
+    <div class="nodo" style="left:790px;top:400px;width:340px;height:130px"><b>Verificar</b><small>código · cifras, alertas, PII y tono</small></div>
+    <div class="nodo" style="left:1250px;top:400px;width:340px;height:130px"><b>Ensamblar</b><small>{{id}} → cifras exactas</small></div>
+    <div class="nodo llm" style="left:790px;top:660px;width:340px;height:130px"><b>Corregir</b><small>LLM · errores por regla, sin valores</small></div>
+    <div class="nodo" style="left:1250px;top:660px;width:340px;height:130px"><b>Plantilla</b><small>determinista · requiere revisión</small></div>
+    <svg class="flechas" viewBox="0 0 1920 1080" aria-hidden="true">
+        <defs><marker id="punta4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="rgba(232,216,92,0.5)"/></marker></defs>
+        <line x1="670" y1="465" x2="786" y2="465" marker-end="url(#punta4)"/>
+        <line x1="1130" y1="465" x2="1246" y2="465" marker-end="url(#punta4)"/>
+        <text x="1190" y="448" text-anchor="middle">pasa</text>
+        <line x1="930" y1="530" x2="930" y2="656" marker-end="url(#punta4)"/>
+        <text x="914" y="600" text-anchor="end">falla</text>
+        <line x1="990" y1="660" x2="990" y2="534" marker-end="url(#punta4)"/>
+        <text x="1006" y="600" text-anchor="start">máx. 2</text>
+        <line x1="1130" y1="725" x2="1246" y2="725" marker-end="url(#punta4)"/>
+        <text x="1190" y="708" text-anchor="middle">agota</text>
+        <line x1="1420" y1="660" x2="1420" y2="534" marker-end="url(#punta4)"/>
+    </svg>
+    <p class="pie cabecera" style="top:850px">El código decide cuándo se corrige y cuándo se usa la plantilla: el agente nunca elige el flujo.</p>
+    <div class="pin"><span>04 / 10</span><span>Sin checkpointer ni memoria</span></div>
+    <aside class="notas">LangGraph vive solo dentro de la Lambda redactar. Cada intento queda auditado. Si el guardrail bloquea, el corrector recibe una instrucción por política, sin el contenido. En evals reales, 6 de 8 casos pasan al primer intento.</aside>
+</section>
+
+<!-- ===========================================
+     05 · PATRONES DE DISEÑO
+     =========================================== -->
+<section class="slide" aria-label="Patrones de diseño">
+    <div class="centro">
+        <div class="kicker">Patrones de diseño</div>
+        <h2 class="h2" style="margin-top:26px">La exactitud la da <em>el código</em></h2>
+        <div class="rejilla">
+            <div class="celda"><h3 class="h3">Marcadores {{id}}</h3><p>El LLM cita; el código sustituye la cifra exacta.</p></div>
+            <div class="celda"><h3 class="h3">Contrato de hechos</h3><p>Solo HechosParaLLM: sin texto crudo ni PII.</p></div>
+            <div class="celda"><h3 class="h3">Defensa en capas</h3><p>Guardrail, verificador y Deny de IAM.</p></div>
+            <div class="celda"><h3 class="h3">Auditoría inmutable</h3><p>Write-once, Object Lock y cadena de hashes.</p></div>
+            <div class="celda"><h3 class="h3">Puertos y adaptadores</h3><p>Bedrock, simulado o guionado: cada ruta se prueba.</p></div>
+            <div class="celda"><h3 class="h3">Idempotencia</h3><p>Nombre de ejecución y escritura condicional.</p></div>
+        </div>
+    </div>
+    <div class="pin"><span>05 / 10</span><span>Diseño</span></div>
+    <aside class="notas">Ninguna cifra sale del modelo: el LLM escribe {{capacidad_pago}} y el ensamblador pone 1.85. El análisis se recalcula byte a byte desde la auditoría. Los puertos permiten probar cada ruta del grafo sin red.</aside>
+</section>
+
+<!-- ===========================================
+     06 · ARQUITECTURA EN AWS
+     =========================================== -->
+<section class="slide" aria-label="Arquitectura en AWS">
+    <div class="cabecera" style="top:90px">
+        <div class="kicker">Arquitectura en AWS · us-east-1</div>
+        <h2 class="h2">Serverless y <em>auditable</em></h2>
+    </div>
+    <div class="nodo" style="left:270px;top:310px;width:300px;height:120px"><b>Analista</b><small>CLI con SSO</small></div>
+    <div class="nodo" style="left:630px;top:310px;width:300px;height:120px"><b>S3 entrada</b><small>cifrado con KMS</small></div>
+    <div class="nodo" style="left:990px;top:310px;width:300px;height:120px"><b>EventBridge</b><small>reglas sobre S3</small></div>
+    <div class="nodo" style="left:1350px;top:310px;width:300px;height:120px"><b>Lambda ingesta</b><small>sha256 y deduplicación</small></div>
+    <div class="nodo" style="left:270px;top:500px;width:1380px;height:130px"><b>Step Functions Standard</b><small>extraer (Map) → validar_calcular → redactar → esperar_revision → registrar_revision</small></div>
+    <div class="nodo llm" style="left:270px;top:710px;width:300px;height:120px"><b>Amazon Bedrock</b><small>Sonnet 4.6 · guardrail obligatorio</small></div>
+    <div class="nodo" style="left:630px;top:710px;width:300px;height:120px"><b>DynamoDB</b><small>estado, token, idempotencia</small></div>
+    <div class="nodo" style="left:990px;top:710px;width:300px;height:120px"><b>S3 auditoría</b><small>Object Lock · hashes</small></div>
+    <div class="nodo" style="left:1350px;top:710px;width:300px;height:120px"><b>CloudWatch</b><small>logs, métricas, alarmas · SNS</small></div>
+    <svg class="flechas" viewBox="0 0 1920 1080" aria-hidden="true">
+        <defs><marker id="punta6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="rgba(232,216,92,0.5)"/></marker></defs>
+        <line x1="570" y1="370" x2="626" y2="370" marker-end="url(#punta6)"/>
+        <line x1="930" y1="370" x2="986" y2="370" marker-end="url(#punta6)"/>
+        <line x1="1290" y1="370" x2="1346" y2="370" marker-end="url(#punta6)"/>
+        <line x1="1500" y1="430" x2="1500" y2="496" marker-end="url(#punta6)"/>
+        <line x1="420" y1="630" x2="420" y2="706" marker-end="url(#punta6)"/>
+        <line x1="780" y1="630" x2="780" y2="706" marker-end="url(#punta6)"/>
+        <line x1="1140" y1="630" x2="1140" y2="706" marker-end="url(#punta6)"/>
+        <line x1="1500" y1="630" x2="1500" y2="706" marker-end="url(#punta6)"/>
+    </svg>
+    <p class="pie cabecera" style="top:880px">Revisión firmada en revisiones/${aws:userid}/ · despliegue con CDK desde GitHub Actions (OIDC)</p>
+    <div class="pin"><span>06 / 10</span><span>Prod: VPC aislada, sin NAT</span></div>
+    <aside class="notas">Siete Lambdas arm64 con un rol cada una. El rol de redactar tiene un Deny de InvokeModel sin el guardrail propio. La auditoría usa Object Lock: GOVERNANCE de 1 día en dev, COMPLIANCE de 10 años en prod. Diagrama detallado en Lucidchart.</aside>
+</section>
+
+<!-- ===========================================
+     07 · STACK (PANELES DE COMPARACIÓN)
+     =========================================== -->
+<section class="slide" aria-label="Stack">
+    <div class="panel izq">
+        <div class="etiqueta">Núcleo · Python</div>
+        <h2 class="h3">Exacto y <em>probado</em></h2>
+        <p class="lead">El dominio no conoce AWS ni frameworks.</p>
+        <ol class="lista">
+            <li><span>Python 3.12 · uv con lockfile</span></li>
+            <li><span>Pydantic v2 inmutable · Decimal</span></li>
+            <li><span>pdfplumber por coordenadas</span></li>
+            <li><span>LangGraph 1.2, solo el ciclo</span></li>
+            <li><span>boto3 Converse, sin LangChain</span></li>
+            <li><span>pytest, moto, ruff y mypy estricto</span></li>
+        </ol>
+    </div>
+    <div class="panel der">
+        <div class="etiqueta">Plataforma · AWS y entrega</div>
+        <h2 class="h3">Serverless y <em>sin llaves</em></h2>
+        <p class="lead">Infraestructura como código, verificada.</p>
+        <ol class="lista">
+            <li><span>Step Functions + 7 Lambdas arm64</span></li>
+            <li><span>Bedrock: Sonnet 4.6 + guardrail</span></li>
+            <li><span>DynamoDB · S3 Object Lock · KMS</span></li>
+            <li><span>CloudWatch, X-Ray, SNS y Budgets</span></li>
+            <li><span>CDK en Python + cdk-nag 3</span></li>
+            <li><span>GitHub Actions con OIDC</span></li>
+        </ol>
+    </div>
+    <div class="pin"><span>07 / 10</span><span>Stack</span></div>
+    <aside class="notas">Todo fijado por versión y con hashes en uv.lock. El paquete de Lambda se construye sin Docker para arm64. 209 pruebas locales, más las de infraestructura que exigen cdk-nag limpio y un inventario aprobado de permisos IAM.</aside>
+</section>
+
+<!-- ===========================================
+     08 · SEGURIDAD EN CAPAS (CITA)
+     =========================================== -->
+<section class="slide" aria-label="Seguridad en capas">
+    <div class="centro" style="left:160px;right:160px">
+        <div class="comilla">“</div>
+        <p class="cita">La inyección se detecta, se reporta y <em>no se obedece</em>.</p>
+        <p class="kicker" style="margin-top:44px;letter-spacing:0.08em">SOL-0006 · alerta S01 en la pág. 1, renglón 16</p>
+        <p class="pie" style="margin-top:36px">PII fuera del modelo, del memo y de los logs · guardrail obligatorio por IAM · revisor identificado por IAM</p>
+    </div>
+    <div class="pin"><span>08 / 10</span><span>Seguridad</span><span>17 amenazas modeladas</span></div>
+    <aside class="notas">El modelo nunca ve texto crudo: solo HechosParaLLM. SOL-0007 prueba con canarios que la PII no llega al prompt, al memo, a los logs ni a la auditoría. El guardrail desplegado pasó 5 de 5 casos y bloquea la recomendación explícita.</aside>
+</section>
+
+<!-- ===========================================
+     09 · RESULTADOS MEDIDOS
+     =========================================== -->
+<section class="slide" aria-label="Resultados medidos">
+    <div class="centro">
+        <div class="kicker">Calidad medida</div>
+        <h2 class="h2" style="margin-top:26px">Medido, <em>no prometido</em></h2>
+        <div class="stats">
+            <div class="stat"><b>40/40</b><span>evals reales con Bedrock</span></div>
+            <div class="stat"><b>100/100</b><span>expedientes en ráfaga</span></div>
+            <div class="stat"><b>$0.024</b><span>USD por memo</span></div>
+            <div class="stat"><b>9/9</b><span>integración con OIDC</span></div>
+        </div>
+        <p class="pie" style="margin-top:70px">Sonnet 4.6 con guardrail · p95 de 41.8 s con concurrencia 10 · 689 movimientos cuadrados al centavo</p>
+    </div>
+    <div class="pin"><span>09 / 10</span><span>Medido el 25 nov 2026</span></div>
+    <aside class="notas">Los evals pasaron de 36/40 a 38/40 y a 40/40; cada falla tuvo una causa medida: el tema del guardrail era demasiado amplio y el verificador leía A03 como cifra. La carga destapó un reintento faltante en EsperarRevision.</aside>
+</section>
+
+<!-- ===========================================
+     10 · CIERRE
+     =========================================== -->
+<section class="slide" aria-label="Cierre">
+    <div class="centro">
+        <h2 class="h1" style="max-width:1500px">El sistema <em>prepara</em>; el comité decide.</h2>
+        <ol class="lista" style="margin-top:64px;width:1280px">
+            <li><span>Desplegado en dev con CI/CD por OIDC; prod apagado hasta aprobarlo</span></li>
+            <li><span>Siguiente: Sonnet 5.5 cuando la cuenta tenga acceso, rehaciendo los evals</span></li>
+            <li><span>v2: copiloto del analista en AgentCore, de solo lectura y sin decidir</span></li>
+        </ol>
+    </div>
+    <div class="pin"><span>10 / 10</span><span>Gracias</span></div>
+    <aside class="notas">Cerrar con la frase de diseño: no existe un estado aprobado. Mencionar la tabla de implementado frente a propuesto en el repositorio para quien quiera el detalle.</aside>
+</section>
+
+</main>
+</div>
+
+<!-- Edición en línea: zona sensible y botón -->
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button class="edit-toggle" id="editToggle" title="Modo edición (E)">✎</button>
+
+<script>
+/* ===========================================
+   CONTROLADOR DE LA PRESENTACIÓN
+   Escala el escenario 1920×1080, navega con teclado, rueda y gestos,
+   y respeta #n en la URL para abrir una diapositiva concreta.
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = document.querySelectorAll('.slide');
+        this.stage = document.getElementById('deckStage');
+        this.current = 0;
+        this.wheelLock = false;
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupWheelNav();
+        this.setupTouchNav();
+        const desdeHash = parseInt(location.hash.replace('#', ''), 10);
+        this.showSlide(Number.isFinite(desdeHash) ? desdeHash - 1 : 0);
+        window.addEventListener('hashchange', () => {
+            const n = parseInt(location.hash.replace('#', ''), 10);
+            if (Number.isFinite(n)) this.showSlide(n - 1);
+        });
+    }
+
+    setupStageScale() {
+        const scale = () => {
+            const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            const x = (window.innerWidth - 1920 * factor) / 2;
+            const y = (window.innerHeight - 1080 * factor) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+        };
+        scale();
+        window.addEventListener('resize', scale);
+    }
+
+    editingText(e) {
+        return e.target && e.target.isContentEditable;
+    }
+
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (this.editingText(e)) return;
+            if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); this.showSlide(this.current + 1); }
+            if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); this.showSlide(this.current - 1); }
+            if (e.key === 'Home') this.showSlide(0);
+            if (e.key === 'End') this.showSlide(this.slides.length - 1);
+        });
+    }
+
+    setupWheelNav() {
+        window.addEventListener('wheel', (e) => {
+            if (this.wheelLock || Math.abs(e.deltaY) < 20) return;
+            this.wheelLock = true;
+            this.showSlide(this.current + (e.deltaY > 0 ? 1 : -1));
+            setTimeout(() => { this.wheelLock = false; }, 700);
+        }, { passive: true });
+    }
+
+    setupTouchNav() {
+        let x0 = null;
+        window.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+        window.addEventListener('touchend', (e) => {
+            if (x0 === null) return;
+            const dx = e.changedTouches[0].clientX - x0;
+            if (Math.abs(dx) > 50) this.showSlide(this.current + (dx < 0 ? 1 : -1));
+            x0 = null;
+        });
+    }
+
+    showSlide(index) {
+        this.current = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === this.current);
+            slide.classList.toggle('visible', i === this.current);
+        });
+    }
+}
+
+/* ===========================================
+   EDITOR EN LÍNEA
+   E o la esquina superior izquierda activan la edición; los cambios se
+   guardan en localStorage y Ctrl+S descarga el HTML con las ediciones.
+   =========================================== */
+class EditorEnLinea {
+    constructor() {
+        this.isActive = false;
+        this.clave = 'memo-credito-presentacion-v1';
+        this.selector = '.slide h1, .slide h2, .slide h3, .slide p, .slide li span, .slide .kicker, .slide .pin span, .slide .nodo b, .slide .nodo small, .slide .stat b, .slide .stat span, .slide .etiqueta, .slide .cifras-portada';
+        this.restaurar();
+        document.addEventListener('input', () => { if (this.isActive) this.guardar(); });
+    }
+    editables() { return [...document.querySelectorAll(this.selector)]; }
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editando', this.isActive);
+        this.editables().forEach((el) => el.setAttribute('contenteditable', this.isActive ? 'true' : 'false'));
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        if (!this.isActive) this.guardar();
+    }
+    guardar() {
+        try { localStorage.setItem(this.clave, JSON.stringify(this.editables().map((el) => el.innerHTML))); } catch (e) { /* almacenamiento no disponible */ }
+    }
+    restaurar() {
+        let datos = null;
+        try { datos = JSON.parse(localStorage.getItem(this.clave) || 'null'); } catch (e) { datos = null; }
+        const els = this.editables();
+        if (!datos || datos.length !== els.length) return;
+        els.forEach((el, i) => { el.innerHTML = datos[i]; });
+    }
+    exportar() {
+        const copia = document.documentElement.cloneNode(true);
+        copia.querySelectorAll('[contenteditable]').forEach((e) => e.removeAttribute('contenteditable'));
+        copia.querySelector('body').classList.remove('editando');
+        const blob = new Blob(['<!DOCTYPE html>\n' + copia.outerHTML], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'presentacion.html';
+        a.click();
+    }
+}
+
+const deck = new SlidePresentation();
+const editor = new EditorEnLinea();
+
+/* Botón y zona sensible con 400 ms de gracia (sin selectores CSS hermanos) */
+const editToggle = document.getElementById('editToggle');
+const hotzone = document.querySelector('.edit-hotzone');
+let hideTimeout = null;
+editToggle.addEventListener('click', () => editor.toggleEditMode());
+hotzone.addEventListener('click', () => editor.toggleEditMode());
+hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); editToggle.classList.add('show'); });
+hotzone.addEventListener('mouseleave', () => { hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400); });
+editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+editToggle.addEventListener('mouseleave', () => { hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400); });
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'e' || e.key === 'E') && !e.target.isContentEditable && !e.ctrlKey && !e.metaKey) editor.toggleEditMode();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); editor.guardar(); editor.exportar(); }
+});
+</script>
+</body>
+</html>
