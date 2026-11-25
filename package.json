@@ -1,0 +1,9 @@
+{
+  "name": "memo-credito-infra",
+  "private": true,
+  "description": "CLI de AWS CDK fijada. El código de infraestructura está en Python (infra/).",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "aws-cdk": "2.1149.0"
+  }
+}

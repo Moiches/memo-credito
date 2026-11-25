@@ -17,9 +17,11 @@ htmlcov/
 !.env.ejemplo
 
 # Salidas generadas
-salidas/
+
 build/
 cdk.out/
 node_modules/
 evals/scorecards/*_local_*.md
 rev/
+salidas*/
+cdk.context.json

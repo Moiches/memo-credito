@@ -24,9 +24,25 @@ def correr(*cmd: str, env: dict[str, str] | None = None) -> None:
         sys.exit(resultado.returncode)
 
 
+def commit_actual() -> str:
+    git = shutil.which("git")
+    if not git:
+        return "desconocido"
+    r = subprocess.run([git, "rev-parse", "--short=12", "HEAD"], cwd=RAIZ, capture_output=True, text=True, check=False)
+    return r.stdout.strip() or "desconocido"
+
+
 def cdk(args: argparse.Namespace, *resto: str) -> None:
     perfil = ["--profile", args.perfil] if args.perfil else []
-    correr("npx", "cdk", *resto, "-c", f"entorno={args.entorno}", *perfil, env={"ENTORNO": args.entorno})
+    correr(
+        "npx",
+        "cdk",
+        *resto,
+        "-c",
+        f"entorno={args.entorno}",
+        *perfil,
+        env={"ENTORNO": args.entorno, "GIT_COMMIT": commit_actual()},
+    )
 
 
 def main() -> None:
@@ -76,7 +92,8 @@ def main() -> None:
         correr("uv", "run", "python", "scripts/build_lambda.py")
         cdk(args, "deploy", f"MemoCredito-{args.entorno}/*", "--require-approval", "never")
     elif o == "deploy-cicd":
-        cdk(args, "deploy", "MemoCredito-Cicd", "--require-approval", "never")
+        # Requiere el repositorio de GitHub: uv run python tareas.py deploy-cicd -c repo=<owner>/<repo>
+        cdk(args, "deploy", "MemoCredito-Cicd", "--require-approval", "never", *extra)
     elif o == "smoke":
         correr(
             "uv",
