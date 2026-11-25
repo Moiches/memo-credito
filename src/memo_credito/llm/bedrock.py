@@ -71,7 +71,7 @@ def parsear_guardrail(traza: dict[str, Any] | None, stop_reason: str) -> Resulta
             for lista in listas:
                 for item in evaluacion.get(politica, {}).get(lista, []) or []:
                     if item.get("action") in ("BLOCKED", "ANONYMIZED") and item.get("detected", True):
-                        politicas.add(f"{politica}:{item.get('type') or item.get('name') or 'regla'}")
+                        politicas.add(f"{politica}:{item.get('name') or item.get('type') or 'regla'}")
                         bloqueo_entrada = bloqueo_entrada or es_entrada
 
     for evaluacion in (traza.get("inputAssessment") or {}).values():

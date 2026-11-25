@@ -65,7 +65,18 @@ def test_ruta_guardrail_bloquea_entrada(contexto):
 def test_ruta_guardrail_bloquea_salida_y_corrige(contexto):
     res, cliente = _correr(contexto, [bloqueo_guardrail("salida"), plantilla(contexto[2])])
     assert len(cliente.peticiones) == 2 and res.estado.origen == "llm"
-    assert res.estado.errores_por_intento[0][0].regla == "salida_invalida"
+    assert res.estado.errores_por_intento[0][0].regla == "guardrail_salida"
+    assert "salida_invalida" in {e.regla for e in res.estado.errores_por_intento[0]}
+    assert cliente.peticiones[1].errores[0].regla == "guardrail_salida"
+
+
+def test_instruccion_del_guardrail_por_politica_sin_contenido():
+    from memo_credito.memo.grafo import instruccion_guardrail
+
+    tema = instruccion_guardrail(("topicPolicy:recomendacion_credito",))
+    assert "verificaciones neutras" in tema
+    assert "datos personales" in instruccion_guardrail(("sensitiveInformationPolicy:EMAIL",))
+    assert instruccion_guardrail(()).startswith("el filtro de seguridad bloqueó la salida")
 
 
 def test_modelo_no_disponible_cae_a_plantilla(contexto):

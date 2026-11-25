@@ -116,6 +116,34 @@ def test_verificador_alertas_omitidas_e_inexistentes(expedientes, analisis, hech
     assert "alerta_inexistente" in reglas and "alerta_omitida" not in reglas
 
 
+def test_codigo_de_alerta_en_la_prosa_no_es_una_cifra(expedientes, analisis, hechos):
+    """Regresión de los evals reales: el modelo citaba "(A03)" y el verificador lo leía como cifra literal."""
+    obs = [
+        Vineta(texto="Se identificó la alerta A03 por un estado de cuenta faltante.", alertas_referidas=("A03",)),
+        Vineta(texto="Los estados financieros son internos y no están dictaminados."),
+    ]
+    reglas, _ = _reglas("SOL-0004", _salida(obs=obs), expedientes, analisis, hechos)
+    assert "cifra_literal" not in reglas and "cifras_memo" not in reglas, reglas
+
+
+def test_codigo_de_alerta_inventado_en_la_prosa_falla(expedientes, analisis, hechos):
+    obs = [
+        Vineta(texto="Se identificó la alerta A05 sin sustento.", alertas_referidas=("A03",)),
+        Vineta(texto="Los estados financieros son internos y no están dictaminados."),
+    ]
+    reglas, _ = _reglas("SOL-0004", _salida(obs=obs), expedientes, analisis, hechos)
+    assert "alerta_inexistente" in reglas
+
+
+def test_codigo_de_alerta_no_oculta_otras_cifras(expedientes, analisis, hechos):
+    obs = [
+        Vineta(texto="La alerta A03 cubre 25 días sin movimientos.", alertas_referidas=("A03",)),
+        Vineta(texto="Los estados financieros son internos y no están dictaminados."),
+    ]
+    reglas, _ = _reglas("SOL-0004", _salida(obs=obs), expedientes, analisis, hechos)
+    assert "cifra_literal" in reglas
+
+
 def test_verificador_canarios_y_estructura(expedientes, analisis, hechos):
     con_nombre = _salida(resumen="La empresa tiene como contacto a Mariana Ortega.")
     reglas, _ = _reglas("SOL-0001", con_nombre, expedientes, analisis, hechos, canarios=("mariana ortega",))

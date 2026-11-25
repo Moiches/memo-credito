@@ -64,6 +64,12 @@ def test_maquina_de_estados(sintesis: dict[str, Sintesis], entorno: str) -> None
     assert "States.Format('falla del paso de redacción: {}', $.error_redaccion.Error)" in definicion
     i = definicion.index('"RedactarMemo":{')
     assert '"ErrorEquals":["LLMNoDisponible"],"IntervalSeconds":30,"MaxAttempts":4' in definicion[i : i + 1500]
+    assert '"ErrorEquals":["Lambda.TooManyRequestsException"],"IntervalSeconds":5,"MaxAttempts":12' in definicion
+    assert '"MaxDelaySeconds":60' in definicion
+    e = definicion.index('"EsperarRevision":{')
+    assert '"ErrorEquals":["Lambda.TooManyRequestsException"]' in definicion[e : definicion.index('"Catch"', e)], (
+        "la tarea con waitForTaskToken también debe reintentar el throttling de Lambda"
+    )
 
 
 @pytest.mark.parametrize("entorno", ENTORNOS)

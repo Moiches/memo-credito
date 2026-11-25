@@ -40,6 +40,24 @@ def _sin_subsegmento(_: str) -> AbstractContextManager[Any]:
     return nullcontext()
 
 
+def instruccion_guardrail(politicas: tuple[str, ...]) -> str:
+    """Traduce las políticas que bloquearon la salida en una instrucción para corregir. Nunca incluye el contenido."""
+    partes = []
+    if any(p.startswith("topicPolicy") for p in politicas):
+        partes.append(
+            "el filtro de seguridad bloqueó la salida porque puede leerse como recomendación o decisión sobre el crédito: "
+            "describe hechos y formula los puntos para el comité como verificaciones neutras, sin valorar si conviene "
+            "aprobar o rechazar"
+        )
+    if any(p.startswith("sensitiveInformationPolicy") for p in politicas):
+        partes.append(
+            "el filtro bloqueó datos personales o identificadores: no incluyas nombres, RFC, CURP ni contactos"
+        )
+    if any(p.startswith("contentPolicy") for p in politicas):
+        partes.append("el filtro de contenido bloqueó la salida: redacta solo con los hechos proporcionados")
+    return "; ".join(partes) or "el filtro de seguridad bloqueó la salida: redacta solo con los hechos proporcionados"
+
+
 def construir_grafo(
     cliente: Any,
     verificador: Verificador,
@@ -76,6 +94,15 @@ def construir_grafo(
                 errores = (
                     ErrorVerificacion(
                         regla="salida_invalida", detalle=f"stopReason={ultima.stop_reason}", ubicacion="respuesta"
+                    ),
+                    *errores,
+                )
+            if ultima.guardrail.intervino and ultima.guardrail.origen == "salida":
+                errores = (
+                    ErrorVerificacion(
+                        regla="guardrail_salida",
+                        detalle=instruccion_guardrail(ultima.guardrail.politicas),
+                        ubicacion="respuesta",
                     ),
                     *errores,
                 )

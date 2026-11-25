@@ -10,10 +10,13 @@ import re
 import unicodedata
 from collections.abc import Iterable
 
+from memo_credito.dominio.alertas import CATALOGO
 from memo_credito.memo.ensamblador import FRASE_FINAL, RE_MARCADOR, TITULOS, renderizar, secciones_redactadas
 from memo_credito.memo.modelos import ErrorVerificacion, HechosParaLLM, SalidaLLM
 
 RE_MARCADOR_CUALQUIERA = re.compile(r"\{\{(.*?)\}\}")
+# Los códigos del catálogo (A03, S01…) son identificadores, no cifras: pueden citarse en la prosa si existen en el caso
+RE_CODIGO_ALERTA = re.compile(r"\b(?:" + "|".join(sorted(CATALOGO)) + r")\b")
 RE_DIGITO = re.compile(r"\d")
 RE_PALABRAS_NUMERO = re.compile(
     r"\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|veinte|treinta|cuarenta|cincuenta|sesenta|"
@@ -75,6 +78,9 @@ def verificar_salida(salida: SalidaLLM, hechos: HechosParaLLM) -> list[ErrorVeri
                     ubicacion,
                 )
         sin_marcadores = RE_MARCADOR_CUALQUIERA.sub(" ", texto)
+        for citado in sorted(set(RE_CODIGO_ALERTA.findall(sin_marcadores)) - {a.codigo for a in hechos.alertas}):
+            err("alerta_inexistente", f"la alerta {citado} citada en el texto no existe en hechos.alertas", ubicacion)
+        sin_marcadores = RE_CODIGO_ALERTA.sub(" ", sin_marcadores)
         if RE_DIGITO.search(sin_marcadores):
             err("cifra_literal", "hay dígitos fuera de un marcador {{id}}", ubicacion)
         if RE_PALABRAS_NUMERO.search(normalizar(sin_marcadores)):
@@ -125,10 +131,11 @@ def verificar_memo(memo: str, hechos: HechosParaLLM, canarios: tuple[str, ...] =
         err("estructura", "falta la frase final del memo", "memo")
 
     redactado = secciones_redactadas(memo)
+    redactado_sin_codigos = RE_CODIGO_ALERTA.sub(" ", redactado)
     permitidos: set[str] = set()
     for valor in (*hechos.cifras.values(), *hechos.textos.values()):
         permitidos |= tokens_numericos(valor)
-    for token in tokens_numericos(redactado):
+    for token in tokens_numericos(redactado_sin_codigos):
         if token not in permitidos:
             err(
                 "cifras_memo", "una cifra de las secciones redactadas no proviene de los hechos", "secciones redactadas"

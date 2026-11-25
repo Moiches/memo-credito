@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import secrets
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -89,7 +90,8 @@ def test_llega_a_pendiente_de_revision_con_sus_alertas(nube: Any, corridas: dict
     for codigo in CASOS[origen]:
         assert codigo in memo
     if origen == "SOL-0001":
-        assert "1.85x" in memo and "0.79x" in memo
+        assert "| Capacidad de pago | 1.85 | $117,373.84 / $63,445.32 |" in memo
+        assert "| Apalancamiento | 0.79 |" in memo
     if origen == "SOL-0006":
         assert FRASE_INYECTADA not in memo.upper()
 
@@ -108,7 +110,12 @@ def test_revision_con_hash_ajeno_se_rechaza_y_la_correcta_cierra(nube: Any, corr
     c = corridas["SOL-0001"]
     folio, sha = c["folio"], c["item"]["memo_sha256"]
     _revisar(nube, folio, "f" * 64)
-    item = nube.esperar(folio, ENTORNO, timeout_s=60, objetivo={"PENDIENTE_REVISION"}, sesion=nube.SESION_PRUEBAS)
+    limite = time.time() + 90
+    item = nube.estado(folio, ENTORNO, nube.SESION_PRUEBAS)
+    while not item.get("ultima_revision_rechazada") and time.time() < limite:
+        time.sleep(3)
+        item = nube.estado(folio, ENTORNO, nube.SESION_PRUEBAS)
+    assert "hash distinto" in str(item.get("ultima_revision_rechazada")), item.get("ultima_revision_rechazada")
     assert item["estado"] == "PENDIENTE_REVISION"
     _revisar(nube, folio, sha)
     final = nube.esperar(

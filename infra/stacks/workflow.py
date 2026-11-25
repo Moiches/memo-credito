@@ -57,7 +57,20 @@ class WorkflowStack(Stack):
         # --- Guardrail de Bedrock (Standard tier, perfil us.) --------------------------------------------
         guardrail_props: dict[str, Any] = {
             "content": [{"type": "PROMPT_ATTACK", "input": "HIGH", "output": "NONE"}],
-            "topic": "recomendacion_credito",
+            # Acotado a decisiones explícitas: "sugerir" y "viable" los cubre el verificador, que sí permite corregir.
+            # Con la definición amplia, 3 de 6 salidas legítimas se bloqueaban (docs/registro_proceso.md).
+            "tema": {
+                "nombre": "recomendacion_credito",
+                "definicion": "Decisión o recomendación explícita sobre el desenlace de una solicitud de crédito: "
+                "aprobarla, rechazarla, autorizarla, otorgarla o negarla.",
+                "ejemplos": [
+                    "Se recomienda aprobar el crédito.",
+                    "Sugerimos rechazar la solicitud.",
+                    "La solicitud debe autorizarse.",
+                    "No es recomendable otorgar el financiamiento.",
+                    "El crédito debe negarse.",
+                ],
+            },
             "pii": {
                 "EMAIL": ("NONE", "BLOCK"),
                 "PHONE": ("NONE", "BLOCK"),
@@ -91,16 +104,10 @@ class WorkflowStack(Stack):
             topic_policy_config=bedrock.CfnGuardrail.TopicPolicyConfigProperty(
                 topics_config=[
                     bedrock.CfnGuardrail.TopicConfigProperty(
-                        name="recomendacion_credito",
+                        name=guardrail_props["tema"]["nombre"],
                         type="DENY",
-                        definition="Recomendar, sugerir o dictaminar que una solicitud de crédito se apruebe, rechace, autorice u "
-                        "otorgue, o calificarla como viable o no viable.",
-                        examples=[
-                            "Se recomienda aprobar el crédito.",
-                            "Sugerimos rechazar la solicitud.",
-                            "La solicitud es viable y debe autorizarse.",
-                            "No es recomendable otorgar el financiamiento.",
-                        ],
+                        definition=guardrail_props["tema"]["definicion"],
+                        examples=guardrail_props["tema"]["ejemplos"],
                         input_enabled=False,
                         input_action="NONE",
                         output_enabled=True,
@@ -459,12 +466,14 @@ class WorkflowStack(Stack):
             result_path=resultado,
             retry_on_service_exceptions=False,
         )
-        # Concurrencia de la cuenta baja (10 en dev): TooManyRequests espera más antes de rendirse
+        # Concurrencia de la cuenta baja (10 en dev): TooManyRequests espera hasta ~8 min antes de rendirse.
+        # Medido en dev: con 6 intentos y 3 s, una ráfaga de 100 expedientes dejó 15 en error (docs/escalamiento.md).
         tarea.add_retry(
             errors=["Lambda.TooManyRequestsException"],
-            interval=Duration.seconds(3),
-            max_attempts=6,
+            interval=Duration.seconds(5),
+            max_attempts=12,
             backoff_rate=2,
+            max_delay=Duration.seconds(60),
             jitter_strategy=sfn.JitterType.FULL,
         )
         tarea.add_retry(
@@ -581,6 +590,16 @@ class WorkflowStack(Stack):
             ),
             result_path="$.revision",
             task_timeout=sfn.Timeout.duration(Duration.seconds(cfg.revision_sla_s)),
+        )
+        # Medido en la carga E2: sin este reintento, 13 de 100 ejecuciones murieron aquí por TooManyRequests.
+        # Es seguro reintentar: si la invocación fue rechazada, el token nunca se guardó.
+        esperar.add_retry(
+            errors=["Lambda.TooManyRequestsException"],
+            interval=Duration.seconds(5),
+            max_attempts=12,
+            backoff_rate=2,
+            max_delay=Duration.seconds(60),
+            jitter_strategy=sfn.JitterType.FULL,
         )
         escalar = tasks.SnsPublish(
             self,

@@ -12,6 +12,7 @@ import statistics
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 import boto3
 
@@ -42,7 +43,13 @@ def main() -> int:
         try:
             item = nube.esperar(folio, args.entorno, timeout_s=args.timeout, sesion=sesion)
             estados[folio] = item.get("estado")
-            duraciones.append(time.time() - inicio[folio])
+            # Momento real en que la Lambda dejó el borrador listo (no cuando este script lo consultó)
+            fin = (
+                datetime.fromisoformat(str(item["pendiente_desde"])).timestamp()
+                if item.get("pendiente_desde")
+                else time.time()
+            )
+            duraciones.append(fin - inicio[folio])
         except TimeoutError:
             estados[folio] = "TIMEOUT"
     ok = sum(1 for e in estados.values() if e == "PENDIENTE_REVISION")
