@@ -1,0 +1,22 @@
+# ADR-0007: Guardrail obligatorio por IAM más verificador determinista
+
+- **Estado:** aceptada (2026-11-25)
+- **Contexto:** un error de código o de configuración podría invocar el modelo sin guardrail, y el guardrail por sí solo no detecta cifras inventadas ni alertas omitidas.
+- **Decisión:**
+  - El rol de `redactar` tiene un `Deny` de `bedrock:InvokeModel` cuando `bedrock:GuardrailIdentifier` no corresponde al guardrail propio (`StringNotLike` sobre su ARN). Sin guardrail, IAM rechaza la llamada.
+  - El guardrail aplica:
+    - `PROMPT_ATTACK` HIGH en la entrada;
+    - un tema denegado: recomendar u otorgar el crédito;
+    - bloqueo de correo, teléfono y dirección en la salida;
+    - regex de CURP y RFC.
+  - El verificador determinista cubre lo que el guardrail no ve: cifras, marcadores, alertas, estructura y canarios de PII.
+  - `scripts/probar_guardrail.py` valida el guardrail desplegado con textos sintéticos. En dev pasaron 5 de 5 casos el 2026-11-25.
+- **Ajuste por evidencia (2026-11-25):**
+  - Con la definición amplia del tema ("recomendar, sugerir o dictaminar… o calificarla como viable"), 3 de 6 salidas legítimas se bloqueaban.
+  - Un bloqueo de salida deja al ciclo de corrección sin el texto, así que el modelo regenera a ciegas.
+  - Ahora el guardrail bloquea solo decisiones explícitas. El lenguaje blando ("sugerir", "viable") lo detecta el verificador, que devuelve la ubicación y permite corregir.
+  - Si el guardrail bloquea, el corrector recibe una instrucción según la política (`guardrail_salida`).
+- **Consecuencias:**
+  - Las capas son independientes: si una falla, la otra sigue protegiendo.
+  - El guardrail es la última barrera y el verificador es la herramienta de corrección.
+  - Cada llamada paga las unidades de texto del guardrail, ya incluidas en el costo por memo.

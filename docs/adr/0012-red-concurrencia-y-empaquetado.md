@@ -1,0 +1,23 @@
+# ADR-0012: Lambda sin VPC en dev y aislada en prod, concurrencia parametrizada y paquete arm64 sin Docker
+
+- **Estado:** aceptada (2026-11-25)
+- **Contexto:**
+  - La cuenta tiene una concurrencia de Lambda de 10. Se pidió subirla a 1,000 y el caso está abierto.
+  - Una VPC con NAT costaría más que todo el cómputo de dev.
+  - El equipo no debe necesitar Docker.
+- **Decisión:**
+  - **Red:**
+    - En prod, subredes aisladas sin NAT ni IGW.
+    - Endpoints de gateway para S3 y DynamoDB, y de interfaz para bedrock-runtime, states y xray (unos USD 44 al mes).
+    - El security group solo permite egreso por el puerto 443.
+    - En dev, sin VPC.
+  - **Concurrencia:**
+    - La concurrencia reservada de `redactar` se define por entorno: `null` en dev (reservar con un límite de 10 hace fallar el despliegue) y 5 en prod cuando suba la cuota (objeción 1).
+    - El `MaxConcurrency` del Map acota la carga, y `TooManyRequestsException` tiene un reintento largo (6 intentos con backoff).
+  - **Empaquetado:**
+    - `scripts/build_lambda.py` instala desde `uv.lock` con hashes para `aarch64-manylinux_2_28`, solo con wheels binarios.
+    - Verifica que toda biblioteca nativa sea ELF aarch64.
+    - El paquete ocupa 134 MB, dentro del límite de 250 MB.
+- **Consecuencias:**
+  - El paquete se construye igual en Windows, macOS y el CI.
+  - El arranque en frío tarda algunos segundos por el tamaño del paquete, lo que es aceptable en un proceso asíncrono.
