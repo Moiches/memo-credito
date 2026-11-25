@@ -1,0 +1,57 @@
+# Evals con Bedrock real en dev (OIDC, guardrail obligatorio). Falla por debajo del 100%.
+name: evals-reales
+
+on:
+  workflow_dispatch:
+    inputs:
+      corridas:
+        description: "Corridas por caso"
+        required: false
+        default: "5"
+  schedule:
+    - cron: "0 13 * * 1" # lunes 07:00 en Ciudad de México
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evals-reales
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-24.04
+    environment: dev
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      UV_FROZEN: "1"
+      LANGSMITH_TRACING: "false"
+      LANGCHAIN_TRACING_V2: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          python-version: "3.12"
+      - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
+        with:
+          role-to-assume: ${{ vars.ROL_PRUEBAS_DEV }}
+          aws-region: us-east-1
+      - name: Evals con Bedrock y el guardrail desplegado en dev
+        env:
+          CORRIDAS: ${{ inputs.corridas || '5' }}
+        run: |
+          uv sync --frozen
+          export MEMO_GUARDRAIL_ID=$(aws ssm get-parameter --name /memo-credito/dev/guardrail-arn --query Parameter.Value --output text)
+          export MEMO_GUARDRAIL_VERSION=$(aws ssm get-parameter --name /memo-credito/dev/guardrail-version --query Parameter.Value --output text)
+          uv run memo evals --modo bedrock --corridas "$CORRIDAS"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: scorecard
+          path: evals/scorecards/
+          retention-days: 90

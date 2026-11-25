@@ -1,0 +1,47 @@
+# Prueba de carga manual en dev con folios LT-* (sintéticos, borrables).
+name: carga
+
+on:
+  workflow_dispatch:
+    inputs:
+      n:
+        description: "Expedientes a enviar"
+        required: false
+        default: "20"
+      modo:
+        description: "simulado o bedrock"
+        required: false
+        default: "simulado"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: carga
+  cancel-in-progress: false
+
+jobs:
+  carga:
+    runs-on: ubuntu-24.04
+    environment: dev
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          python-version: "3.12"
+      - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
+        with:
+          role-to-assume: ${{ vars.ROL_PRUEBAS_DEV }}
+          aws-region: us-east-1
+      - env:
+          N: ${{ inputs.n }}
+          MODO: ${{ inputs.modo }}
+        run: |
+          uv sync --frozen
+          uv run python scripts/carga.py --entorno dev --n "$N" --modo "$MODO"

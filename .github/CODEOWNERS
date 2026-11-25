@@ -1,0 +1,9 @@
+# Reemplaza OWNER por el usuario o equipo responsable al crear el repositorio (p. ej. org/riesgos-credito).
+# Cambios en prompts, valores esperados, política, infraestructura, permisos aprobados o pipelines exigen su revisión.
+/prompts/                              @OWNER
+/evals/                                @OWNER
+/config/                               @OWNER
+/infra/                                @OWNER
+/tests/infra/permisos_esperados.json   @OWNER
+/.github/                              @OWNER
+/AGENTS.md                             @OWNER

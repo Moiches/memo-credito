@@ -1,0 +1,172 @@
+# main -> build (un solo synth) -> dev -> integración -> aprobación -> prod (mismo cdk.out) -> smoke.
+# Rollback: workflow_dispatch con ref=<sha anterior>.
+name: cd
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit a desplegar (rollback); vacío = HEAD de main"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+env:
+  UV_FROZEN: "1"
+  LANGSMITH_TRACING: "false"
+  LANGCHAIN_TRACING_V2: "false"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Paquete y synth de ambos entornos (con cdk-nag)
+        env:
+          GIT_COMMIT: ${{ inputs.ref || github.sha }}
+        run: |
+          uv sync --frozen && npm ci
+          uv run pytest tests/infra -q
+          uv run python scripts/build_lambda.py
+          npx cdk synth -c entorno=dev --quiet --output cdk.out.dev
+          npx cdk synth -c entorno=prod --quiet --output cdk.out.prod
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ensamblados
+          path: |
+            cdk.out.dev
+            cdk.out.prod
+          retention-days: 30
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: dev
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ensamblados
+      - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
+        with:
+          role-to-assume: ${{ vars.ROL_DEPLOY_DEV }}
+          aws-region: us-east-1
+      - run: |
+          npm ci
+          npx cdk deploy --app cdk.out.dev "MemoCredito-dev/*" --require-approval never
+
+  integracion-dev:
+    needs: deploy-dev
+    runs-on: ubuntu-24.04
+    environment: dev
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          python-version: "3.12"
+      - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
+        with:
+          role-to-assume: ${{ vars.ROL_PRUEBAS_DEV }}
+          aws-region: us-east-1
+      - name: Integración contra dev (SOL-0001, 0004, 0006, 0007 y negativos de permisos)
+        env:
+          ENTORNO: dev
+        run: |
+          uv sync --frozen
+          uv run pytest -m integracion tests/integracion -o addopts=-q
+
+  deploy-prod:
+    needs: integracion-dev
+    runs-on: ubuntu-24.04
+    environment: prod # revisores obligatorios en la configuración del environment
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ensamblados
+      - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
+        with:
+          role-to-assume: ${{ vars.ROL_DEPLOY_PROD }}
+          aws-region: us-east-1
+      - name: Despliega el mismo ensamblado que pasó por dev
+        run: |
+          npm ci
+          npx cdk deploy --app cdk.out.prod "MemoCredito-prod/*" --require-approval never
+
+  smoke-prod:
+    needs: deploy-prod
+    runs-on: ubuntu-24.04
+    environment: prod
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
+        with:
+          role-to-assume: ${{ vars.ROL_DEPLOY_PROD }}
+          aws-region: us-east-1
+      - name: Salud de los stacks con el rol de lookup del bootstrap (solo lectura)
+        run: |
+          CUENTA=$(aws sts get-caller-identity --query Account --output text)
+          CREDS=$(aws sts assume-role --role-arn "arn:aws:iam::${CUENTA}:role/cdk-memocred-lookup-role-${CUENTA}-us-east-1" \
+            --role-session-name smoke-prod --query Credentials --output json)
+          export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r .AccessKeyId)
+          export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r .SecretAccessKey)
+          export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r .SessionToken)
+          for pila in memo-credito-prod-datos memo-credito-prod-flujo memo-credito-prod-observabilidad; do
+            estado=$(aws cloudformation describe-stacks --stack-name "$pila" --query 'Stacks[0].StackStatus' --output text)
+            echo "$pila: $estado"
+            case "$estado" in CREATE_COMPLETE|UPDATE_COMPLETE) ;; *) exit 1 ;; esac
+          done
+          aws stepfunctions describe-state-machine \
+            --state-machine-arn "arn:aws:states:us-east-1:${CUENTA}:stateMachine:memo-credito-prod-flujo" \
+            --query status --output text | grep -q ACTIVE

@@ -99,10 +99,10 @@ def main() -> None:
             "uv",
             "run",
             "memo",
-            "enviar",
-            args.folio or "SOL-0001",
             "--entorno",
             args.entorno,
+            "enviar",
+            args.folio or "SOL-0001",
             "--esperar",
             env=perfil_env,
         )
@@ -138,9 +138,9 @@ def main() -> None:
             env=perfil_env,
         )
     elif o == "revisar":
-        correr("uv", "run", "memo", "revisar", *extra, env=perfil_env)
+        correr("uv", "run", "memo", "--entorno", args.entorno, "revisar", *extra, env=perfil_env)
     elif o == "reprocesar":
-        correr("uv", "run", "memo", "reprocesar", args.folio or "", "--entorno", args.entorno, *extra, env=perfil_env)
+        correr("uv", "run", "memo", "--entorno", args.entorno, "reprocesar", args.folio or "", *extra, env=perfil_env)
     elif o == "activar-etiquetas-costo":
         correr("uv", "run", "python", "scripts/activar_etiquetas_costo.py", env=perfil_env)
     elif o == "destroy":
