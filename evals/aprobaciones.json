@@ -1,0 +1,40 @@
+{
+  "aprobaciones": [
+    {
+      "huella": {
+        "prompt_sha256": "82989c08c9386af913e1276d58e82a406411a8f7d4d1813f895dd21baa7c4149",
+        "esquema_sha256": "7d82c70f01eccc911c8959a6b11104c58df97237752e372a9a084526ec81c328",
+        "modelo_id": "us.anthropic.claude-sonnet-4-6",
+        "effort": "low",
+        "max_tokens": 2000,
+        "max_correcciones": 2
+      },
+      "fecha": "2026-11-25T14:58:37-06:00",
+      "corridas": 40,
+      "aprobadas": 40,
+      "scorecard": "evals/scorecards/20261125_1458_bedrock_5x.md",
+      "request_ids": [
+        "e5906740-defb-4331-bef2-5fe4850c95a4",
+        "9e52c9af-687c-4bcf-9beb-1b98799b8fe3",
+        "cbabf319-f706-4222-8dfa-b3d64fe2579f",
+        "45c42513-61d6-4836-a9da-70e2625e99f9",
+        "8304eb61-7832-4ce4-a135-32855222c6f0",
+        "145ad3f9-aa28-4dd4-8b23-8c0f21b677bc",
+        "2c627139-48df-46ff-94af-8288abbe65ff",
+        "35e9e975-f5a5-4bf4-ab45-ed3d9d02fc7a",
+        "082e1f0e-b628-45f0-820d-8d9f53099924",
+        "c7c40e65-7ee8-4d38-83fd-f4ed137a96fe",
+        "bd5a846c-401e-486e-b9f2-b7f5a5bfe897",
+        "46b6bcbf-4089-4e63-b50b-9196cfe85e75",
+        "7b64fded-c69f-430f-b394-7d4d9805bd63",
+        "9551e26c-fcb5-4bbe-a6e6-4254304f4945",
+        "38190ca5-31b0-4e5b-8a2c-c5158a501e6d",
+        "294899f2-ac9e-4f40-8714-28d2cdba4c1c",
+        "4871e99f-401f-4261-96db-ce9cc761c4fe",
+        "dde7bda5-2774-4499-bfb4-172b6ac0ebf0",
+        "3f4c3fb2-d692-4273-90c6-d7453a9a6c7f",
+        "b51b90ba-1b3a-4cd4-b966-f0ca0e957597"
+      ]
+    }
+  ]
+}
