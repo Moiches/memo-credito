@@ -39,8 +39,9 @@ jobs:
           python-version: "3.12"
       - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
         with:
-          role-to-assume: ${{ vars.ROL_PRUEBAS_DEV }}
+          role-to-assume: ${{ secrets.ROL_PRUEBAS_DEV }}
           aws-region: us-east-1
+          mask-aws-account-id: true
       - name: Evals con Bedrock y el guardrail desplegado en dev
         env:
           CORRIDAS: ${{ inputs.corridas || '5' }}

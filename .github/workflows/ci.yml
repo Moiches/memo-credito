@@ -82,8 +82,8 @@ jobs:
 
   diff:
     # Solo PRs del mismo repositorio: los forks no reciben credenciales.
-    # Dependabot no recibe token OIDC ni variables: su PR solo pasa por calidad e infra.
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' && vars.ROL_PR_LECTURA != ''
+    # Dependabot no recibe token OIDC ni secretos: su PR solo pasa por calidad e infra.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -104,14 +104,17 @@ jobs:
           cache: npm
       - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
         with:
-          role-to-assume: ${{ vars.ROL_PR_LECTURA }}
+          role-to-assume: ${{ secrets.ROL_PR_LECTURA }}
           aws-region: us-east-1
+          mask-aws-account-id: true
       - name: cdk diff contra dev
         continue-on-error: true
         run: |
           uv sync --frozen && npm ci
           uv run python scripts/build_lambda.py
-          npx cdk diff "MemoCredito-dev/*" -c entorno=dev --no-change-set > "$RUNNER_TEMP/diff.txt" 2>&1 || true
+          # El comentario del PR es público y GitHub no enmascara lo que se publica por API: se quita la cuenta.
+          CUENTA=$(aws sts get-caller-identity --query Account --output text)
+          npx cdk diff "MemoCredito-dev/*" -c entorno=dev --no-change-set 2>&1 | sed "s/$CUENTA/<cuenta>/g" > "$RUNNER_TEMP/diff.txt" || true
       - uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
         with:
           script: |

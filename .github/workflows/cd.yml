@@ -80,8 +80,9 @@ jobs:
           name: ensamblados
       - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
         with:
-          role-to-assume: ${{ vars.ROL_DEPLOY_DEV }}
+          role-to-assume: ${{ secrets.ROL_DEPLOY_DEV }}
           aws-region: us-east-1
+          mask-aws-account-id: true
       - run: |
           npm ci
           npx cdk deploy --app cdk.out.dev "MemoCredito-dev/*" --require-approval never
@@ -104,8 +105,9 @@ jobs:
           python-version: "3.12"
       - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
         with:
-          role-to-assume: ${{ vars.ROL_PRUEBAS_DEV }}
+          role-to-assume: ${{ secrets.ROL_PRUEBAS_DEV }}
           aws-region: us-east-1
+          mask-aws-account-id: true
       - name: Integración contra dev (SOL-0001, 0004, 0006, 0007 y negativos de permisos)
         env:
           ENTORNO: dev
@@ -138,8 +140,9 @@ jobs:
           name: ensamblados
       - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
         with:
-          role-to-assume: ${{ vars.ROL_DEPLOY_PROD }}
+          role-to-assume: ${{ secrets.ROL_DEPLOY_PROD }}
           aws-region: us-east-1
+          mask-aws-account-id: true
       - name: Despliega el mismo ensamblado que pasó por dev
         run: |
           npm ci
@@ -156,8 +159,9 @@ jobs:
     steps:
       - uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
         with:
-          role-to-assume: ${{ vars.ROL_DEPLOY_PROD }}
+          role-to-assume: ${{ secrets.ROL_DEPLOY_PROD }}
           aws-region: us-east-1
+          mask-aws-account-id: true
       - name: Salud de los stacks con el rol de lookup del bootstrap (solo lectura)
         run: |
           CUENTA=$(aws sts get-caller-identity --query Account --output text)

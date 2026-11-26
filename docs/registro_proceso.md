@@ -95,7 +95,7 @@ Bitácora de cómo se construyó la solución, cómo se usaron las herramientas 
 ### Repositorio y CI/CD
 
 - **Repositorio:** `Moiches/memo-credito`, privado, creado con la confirmación explícita del propietario. Antes de publicar se revisaron los archivos versionados: sin credenciales, sin correos y sin el ID de la cuenta.
-- **Stack `memo-credito-cicd`:** proveedor OIDC de GitHub y roles `gh-pr-lectura`, `gh-deploy-dev`, `gh-deploy-prod` y `gh-pruebas-dev`. Sus ARN se guardan como variables del repositorio, no como secretos.
+- **Stack `memo-credito-cicd`:** proveedor OIDC de GitHub y roles `gh-pr-lectura`, `gh-deploy-dev`, `gh-deploy-prod` y `gh-pruebas-dev`. Sus ARN se guardan como secretos del repositorio: no son credenciales (el acceso es por OIDC, sin llaves), pero así GitHub los enmascara y el número de cuenta no aparece en los logs públicos.
 - **Sin aprobación por revisores:** el plan de GitHub no admite revisores obligatorios en environments de repositorios privados (HTTP 422). `deploy-prod` queda apagado hasta definir `PROD_HABILITADO=true`, así que un push a `main` nunca despliega prod.
 - **Primer `cd`:** falló al asumir el rol. CloudTrail mostró que GitHub emite el `sub` con IDs inmutables (`repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:dev`), no el formato heredado.
   - La confianza ahora exige ese sujeto exacto, que además impide que un repositorio recreado con el mismo nombre herede los permisos.
