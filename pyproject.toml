@@ -19,7 +19,7 @@ memo = "memo_credito.cli.main:main"
 [dependency-groups]
 dev = [
     "pytest==8.4.2",
-    "pytest-cov==7.0.0",
+    "pytest-cov==7.1.0",
     "pytest-socket==0.7.0",
     "ruff==0.14.6",
     "mypy==1.18.2",
