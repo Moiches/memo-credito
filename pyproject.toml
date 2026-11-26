@@ -27,7 +27,7 @@ dev = [
     "moto[s3,dynamodb,stepfunctions]==5.1.14",
     "reportlab==4.4.4",
     "pre-commit==4.3.0",
-    "pip-audit==2.9.0",
+    "pip-audit==2.10.1",
 ]
 infra = [
     "aws-cdk-lib==2.278.0",
