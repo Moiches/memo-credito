@@ -115,7 +115,7 @@ jobs:
           # El comentario del PR es público y GitHub no enmascara lo que se publica por API: se quita la cuenta.
           CUENTA=$(aws sts get-caller-identity --query Account --output text)
           npx cdk diff "MemoCredito-dev/*" -c entorno=dev --no-change-set 2>&1 | sed "s/$CUENTA/<cuenta>/g" > "$RUNNER_TEMP/diff.txt" || true
-      - uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const fs = require('fs');
