@@ -34,6 +34,9 @@ infra = [
     "constructs==10.8.1",
     "cdk-nag==3.1.0",
 ]
+ui = [
+    "streamlit==1.67.0",
+]
 
 [tool.uv]
 default-groups = ["dev", "infra"]

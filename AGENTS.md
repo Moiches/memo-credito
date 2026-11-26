@@ -41,9 +41,11 @@ algo, lee `docs/plan_implementacion.md` (secciones 5, 8 a 10 y 16) y los ADR de 
 | `src/memo_credito/llm` | Puerto `ClienteLLM`, cliente simulado, guionado (tests) y Bedrock |
 | `src/memo_credito/auditoria` | Paquete de auditoría con JSON canónico y cadena de hashes |
 | `src/memo_credito/handlers` | Lambdas delgadas |
+| `src/memo_credito/ui` | Lógica de la consola local: validación de entrada, lectura del memo y operaciones con la sesión del analista (sin Streamlit) |
+| `app/` | Vista de la consola en Streamlit, sin reglas de negocio (ADR-0013) |
 | `infra/` | CDK en Python (stacks, stage, cdk-nag) |
 
 ## Comandos
 
-`uv run python tareas.py check | evals | procesar | synth | deploy --entorno dev --perfil <perfil>`
+`uv run python tareas.py check | evals | procesar | synth | deploy | ui --entorno dev --perfil <perfil>`
 (o `make <objetivo>` donde haya make).

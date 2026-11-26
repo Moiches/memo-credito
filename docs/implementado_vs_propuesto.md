@@ -16,6 +16,7 @@ Estado al 2026-11-25. "Desplegado" significa que funciona en la cuenta de dev (`
 | Perfil de inferencia de aplicación con etiquetas de costo | Desplegado | Stack `memo-credito-dev-flujo` |
 | S3 (KMS, TLS, ciclo de vida), DynamoDB (PITR, KMS), SNS cifrado, Step Functions, 7 Lambdas arm64 | Desplegado | 3 stacks en dev; smoke SOL-0001 hasta `PENDIENTE_REVISION` en unos 18 s con el LLM simulado |
 | Revisión con task token, CLI e identidad impuesta por IAM (`revisiones/${aws:userid}/`) | Desplegado | Revisión con la CLI → `LISTO_PARA_COMITE` con `revisor_id` igual al `aws:userid`; negativos en `tests/unit/test_handlers.py` |
+| Consola local del analista en Streamlit: envío, seguimiento de Step Functions, bandeja, revisión y modo local | Implementado; corre en el equipo del analista con su perfil | Probada contra dev desde el navegador (envío, seguimiento y revisión `requiere_cambios` aplicada); `tests/unit/test_ui.py`; ADR-0013 |
 | Throttling de Bedrock: reintentos en Step Functions antes de la plantilla | Desplegado | Cuota de 10 RPM observada; prueba en `tests/infra` y `tests/unit/test_grafo.py` |
 | Auditoría inmutable (Object Lock, write-once, cadena de hashes, proyección sin PII) | Desplegado | Prueba de reproducibilidad, `verificar_paquete` con moto |
 | Alarmas a SNS (17), dashboard y presupuesto mensual | Desplegado | Stack `memo-credito-dev-observabilidad` |
@@ -38,7 +39,7 @@ Estado al 2026-11-25. "Desplegado" significa que funciona en la cuenta de dev (`
 | Macie en prod | Solo hay datos sintéticos | Habilitar en la cuenta de prod |
 | Extracción de respaldo con LLM para formatos de banco nuevos | El set trae un solo banco | Patrón del grafo con la conciliación como evaluador |
 | LLM como evaluador de la redacción | No toca cifras; prioridad baja | Rúbrica sí/no sobre los evals |
-| App web (API Gateway y Cognito) | Decisión 6: CLI con SSO | — |
+| App web alojada (API Gateway y Cognito) | Decisión 6: CLI con SSO; la consola local (ADR-0013) cubre al analista sin infraestructura nueva | Solo si hace falta un acceso multiusuario alojado |
 | Copiloto con LangGraph en AgentCore | Solo en las diapositivas (v2) | — |
 | Cuentas separadas (Organizations y SCP) | La demo usa una sola cuenta, con prefijos por entorno | — |
 | `mx-central-1` | Sin los modelos ni un perfil geográfico para México | Revisar disponibilidad |

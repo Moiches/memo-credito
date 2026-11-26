@@ -79,6 +79,22 @@ uv run memo --entorno dev revisar SOL-0001 --decision listo_para_comite \
 
 La revisión se escribe en `revisiones/<tu aws:userid>/…` (IAM no permite otro prefijo). `aplicar_revision` valida el hash del borrador vigente y envía el task token. El estado final es `LISTO_PARA_COMITE` o `REQUIERE_CAMBIOS`, y la revisión queda en DynamoDB, en la auditoría y en las métricas de retroalimentación.
 
+## Consola del analista (Streamlit)
+
+Una interfaz local para lo mismo que hace la CLI, más el seguimiento del flujo en vivo. Corre en tu equipo, escucha solo en `localhost` y usa tu perfil de AWS, así que IAM sigue imponiendo tu identidad al revisar (ADR-0013).
+
+```bash
+uv run python tareas.py ui --perfil <perfil>     # abre http://localhost:8501
+```
+
+| Pantalla | Qué hace |
+|---|---|
+| Enviar expediente | Elige un caso del reto, uno propio en `demo/casos/<FOLIO>/` o sube tus archivos; valida nombres y tamaños antes de enviar |
+| Seguimiento | Estado del folio y cada paso de Step Functions con su duración, en vivo; enlace a la ejecución en la consola de AWS |
+| Bandeja de revisión | Folios en `PENDIENTE_REVISION`; oculta los de pruebas automáticas |
+| Revisar memo | Borrador, alertas, evidencia de cada cifra y formulario de revisión con confirmación |
+| Modo local | El mismo pipeline con el LLM simulado, sin AWS; verifica el paquete de auditoría |
+
 ## Reglas del repositorio
 
 [`AGENTS.md`](AGENTS.md) contiene las 12 reglas obligatorias para personas y asistentes de código. Entre ellas:
@@ -97,7 +113,7 @@ La revisión se escribe en `revisiones/<tu aws:userid>/…` (IAM no permite otro
 | [`docs/plan_implementacion.md`](docs/plan_implementacion.md) | Plan de 26 secciones: arquitectura, contratos, costos, evals, seguridad, CI/CD |
 | [`docs/datos.md`](docs/datos.md) | Hallazgos verificados al centavo en los 8 expedientes |
 | [`docs/arquitectura.md`](docs/arquitectura.md) | Flujo, estados, componentes, datos y su retención, seguridad |
-| [`docs/adr/`](docs/adr/) | ADR-0001 a ADR-0012 |
+| [`docs/adr/`](docs/adr/) | ADR-0001 a ADR-0013 |
 | [`docs/implementado_vs_propuesto.md`](docs/implementado_vs_propuesto.md) | Qué está en el código y desplegado, y qué es propuesta |
 | [`docs/runbook.md`](docs/runbook.md) | Seis síntomas con diagnóstico y acción |
 | [`docs/modelo_amenazas.md`](docs/modelo_amenazas.md) | 17 amenazas, controles y evidencia |

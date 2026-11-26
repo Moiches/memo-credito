@@ -140,22 +140,42 @@ def cmd_descargar(args: argparse.Namespace) -> int:
     return 0
 
 
+def revision(
+    folio: str,
+    memo_sha256: str,
+    decision: str,
+    calificaciones: dict[str, int] | None = None,
+    categoria_error: str = "ninguna",
+    comentario: str = "",
+    memo_final: bytes | None = None,
+) -> dict[str, Any]:
+    """Cuerpo que valida aplicar_revision (RevisionEntrada); lo comparten la CLI y la consola."""
+    return {
+        "folio": folio,
+        "memo_sha256": memo_sha256,
+        "decision": decision,
+        "calificaciones": dict(calificaciones or {}),
+        "categoria_error": categoria_error,
+        "comentario": comentario,
+        "memo_final_sha256": _sha256(memo_final) if memo_final else memo_sha256,
+        "memo_final": memo_final.decode("utf-8") if memo_final else None,
+    }
+
+
+def clave_revision(user_id: str, folio: str, memo_sha256: str) -> str:
+    """IAM solo deja escribir bajo revisiones/<aws:userid>/: la identidad del revisor no la declara el cliente."""
+    return f"revisiones/{user_id}/{folio}/{memo_sha256}.json"
+
+
 def construir_revision(folio: str, memo_sha256: str, args: argparse.Namespace) -> dict[str, Any]:
     calificaciones = {}
     for par in args.calificacion or []:
         seccion, _, valor = par.partition("=")
         calificaciones[seccion.strip()] = int(valor)
     memo_final = Path(args.memo_final).read_bytes() if args.memo_final else None
-    return {
-        "folio": folio,
-        "memo_sha256": memo_sha256,
-        "decision": args.decision,
-        "calificaciones": calificaciones,
-        "categoria_error": args.categoria_error,
-        "comentario": args.comentario or "",
-        "memo_final_sha256": _sha256(memo_final) if memo_final else memo_sha256,
-        "memo_final": memo_final.decode("utf-8") if memo_final else None,
-    }
+    return revision(
+        folio, memo_sha256, args.decision, calificaciones, args.categoria_error, args.comentario or "", memo_final
+    )
 
 
 def cmd_revisar(args: argparse.Namespace) -> int:
@@ -165,13 +185,13 @@ def cmd_revisar(args: argparse.Namespace) -> int:
     if item.get("estado") != "PENDIENTE_REVISION":
         print(f"{args.folio} no está pendiente de revisión (estado={item.get('estado')})")
         return 1
-    revision = construir_revision(args.folio, str(item["memo_sha256"]), args)
+    cuerpo = construir_revision(args.folio, str(item["memo_sha256"]), args)
     user_id = sesion.client("sts").get_caller_identity()["UserId"]  # IAM obliga a que coincida con aws:userid
-    clave = f"revisiones/{user_id}/{args.folio}/{revision['memo_sha256']}.json"
+    clave = clave_revision(user_id, args.folio, cuerpo["memo_sha256"])
     sesion.client("s3").put_object(
         Bucket=r["bucket-datos"],
         Key=clave,
-        Body=json.dumps(revision, ensure_ascii=False).encode("utf-8"),
+        Body=json.dumps(cuerpo, ensure_ascii=False).encode("utf-8"),
         ChecksumAlgorithm="SHA256",
     )
     print(f"Revisión registrada: s3://{r['bucket-datos']}/{clave}")

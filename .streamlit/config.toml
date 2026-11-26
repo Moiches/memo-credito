@@ -1,0 +1,33 @@
+# Consola local del analista (app/consola.py). Ver ADR-0013.
+
+[server]
+address = "localhost"     # solo en este equipo; no se expone a la red
+headless = true
+maxUploadSize = 5         # MB por archivo, igual que el límite de PDF de la ingesta
+runOnSave = false
+
+[browser]
+gatherUsageStats = false  # sin telemetría hacia terceros
+
+[client]
+toolbarMode = "minimal"
+
+# Sistema de diseño (skill ui-ux-pro-max): Minimalism & Swiss, azul marino con dorado, IBM Plex.
+[theme]
+base = "dark"
+primaryColor = "#F59E0B"
+backgroundColor = "#0F172A"
+secondaryBackgroundColor = "#1E293B"
+textColor = "#F8FAFC"
+linkColor = "#FBBF24"
+borderColor = "#334155"
+codeBackgroundColor = "#1E293B"
+dataframeHeaderBackgroundColor = "#1E293B"
+showWidgetBorder = true
+baseRadius = "small"
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
+codeFont = "IBM Plex Mono:https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap, monospace"
+
+[theme.sidebar]
+backgroundColor = "#0B1222"
+secondaryBackgroundColor = "#1E293B"

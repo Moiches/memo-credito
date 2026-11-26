@@ -144,6 +144,10 @@ def main() -> None:
         correr("uv", "run", "memo", "--entorno", args.entorno, "reprocesar", args.folio or "", *extra, env=perfil_env)
     elif o == "activar-etiquetas-costo":
         correr("uv", "run", "python", "scripts/activar_etiquetas_costo.py", env=perfil_env)
+    elif o == "ui":
+        # Consola local del analista (ADR-0013): escucha solo en localhost y usa tu propio perfil de AWS.
+        entorno_ui = {**perfil_env, "ENTORNO": args.entorno}
+        correr("uv", "run", "--group", "ui", "streamlit", "run", "app/consola.py", *extra, env=entorno_ui)
     elif o == "destroy":
         if args.entorno == "prod":
             sys.exit("destroy no está permitido en prod desde tareas.py")
