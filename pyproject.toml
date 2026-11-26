@@ -26,7 +26,7 @@ dev = [
     "types-PyYAML",
     "moto[s3,dynamodb,stepfunctions]==5.1.14",
     "reportlab==4.4.4",
-    "pre-commit==4.3.0",
+    "pre-commit==4.7.0",
     "pip-audit==2.9.0",
 ]
 infra = [
